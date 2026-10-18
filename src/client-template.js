@@ -392,56 +392,9 @@ window.__ModuleLoader__.load({
 
 		var ROW_ICONS_SORTED = ROW_ICONS.slice().sort(function (a, b) { return b[0].length - a[0].length; });
 
-		// Anything the theme touches must be restorable when the plugin is turned
-		// off, because DSH does not re-render every icon tree on unload.
-		var ICON_RESTORE = [];
-		var ICON_RESTORE_SEEN = typeof WeakMap !== "undefined" ? new WeakMap() : null;
-		var IMG_RESTORE = [];
-
-		function rememberSvg(svg) {
-			if (ICON_RESTORE_SEEN && ICON_RESTORE_SEEN.has(svg)) return;
-			var rec = { el: svg, attrs: {}, html: svg.innerHTML };
-			for (var ai = 0; ai < svg.attributes.length; ai++) {
-				var attr = svg.attributes[ai];
-				rec.attrs[attr.name] = attr.value;
-			}
-			if (ICON_RESTORE_SEEN) ICON_RESTORE_SEEN.set(svg, rec);
-			ICON_RESTORE.push(rec);
-		}
-
-		function restoreAllIcons() {
-			for (var i = 0; i < ICON_RESTORE.length; i++) {
-				var rec = ICON_RESTORE[i];
-				var el = rec.el;
-				if (!el) continue;
-				try {
-					while (el.attributes.length) el.removeAttribute(el.attributes[0].name);
-					for (var name in rec.attrs) {
-						if (Object.prototype.hasOwnProperty.call(rec.attrs, name)) {
-							el.setAttribute(name, rec.attrs[name]);
-						}
-					}
-					el.innerHTML = rec.html;
-				} catch (e) { /* node may be owned by React and already detached */ }
-			}
-			for (var j = 0; j < IMG_RESTORE.length; j++) {
-				var imgRec = IMG_RESTORE[j];
-				try {
-					if (imgRec.replacement && imgRec.replacement.parentNode) {
-						imgRec.replacement.parentNode.removeChild(imgRec.replacement);
-					}
-					if (imgRec.parent && imgRec.parent.isConnected) {
-						var next = imgRec.next;
-						if (!next || next.parentNode !== imgRec.parent) next = null;
-						imgRec.parent.insertBefore(imgRec.img, next);
-					}
-				} catch (e) { /* detached by React */ }
-			}
-			ICON_RESTORE.length = 0;
-			IMG_RESTORE.length = 0;
-			ICON_RESTORE_SEEN = typeof WeakMap !== "undefined" ? new WeakMap() : null;
-		}
-
+		// React owns the native SVG trees. Never replace their children: a composer
+		// transition can then crash with removeChild / slot entry errors. Paint the
+		// Forge-Cathedral glyph as a CSS mask over the untouched SVG box instead.
 		function clearAdmechAttributes() {
 			var marked = document.querySelectorAll("[data-admech], [data-admech-icon], [data-admech-brand], [data-admech-active], [data-admech-hero-mark], [data-admech-placeholder], [data-admech-ph]");
 			for (var i = 0; i < marked.length; i++) {
@@ -454,30 +407,38 @@ window.__ModuleLoader__.load({
 			}
 		}
 
+		var ICON_MASK_STYLE = null;
+		function iconMaskCss() {
+			var css = "";
+			for (var key in ICON_BODIES) {
+				if (!Object.prototype.hasOwnProperty.call(ICON_BODIES, key)) continue;
+				var mask;
+				if (key === "emblem") {
+					mask = 'url("' + EMBLEM_URI + '")';
+				} else {
+					var raw = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="none">' + ICON_BODIES[key].replace(/currentColor/g, "#ffffff") + '</svg>';
+					mask = 'url("data:image/svg+xml,' + encodeURIComponent(raw) + '")';
+				}
+				css += 'html[data-dsh-admech] svg[data-admech-icon="' + key + '"]{--admech-icon-mask:' + mask + ';}';
+			}
+			return css;
+		}
+		function ensureIconMaskStyle() {
+			if (ICON_MASK_STYLE || !document.head) return;
+			ICON_MASK_STYLE = document.createElement("style");
+			ICON_MASK_STYLE.setAttribute("data-dsh-theme", "admech-icon-masks");
+			ICON_MASK_STYLE.textContent = iconMaskCss();
+			document.head.appendChild(ICON_MASK_STYLE);
+		}
+		function removeIconMaskStyle() {
+			if (ICON_MASK_STYLE && ICON_MASK_STYLE.parentNode) ICON_MASK_STYLE.parentNode.removeChild(ICON_MASK_STYLE);
+			ICON_MASK_STYLE = null;
+		}
+
 		function applyIcon(svg, key, brand) {
 			if (!svg || !ICON_BODIES[key]) return false;
-			var originalWidth = parseFloat(svg.getAttribute("width") || "0");
-			if (!svg.querySelector("[data-admech-glyph]")) {
-				rememberSvg(svg);
-				svg.setAttribute("viewBox", "0 0 16 16");
-				svg.setAttribute("fill", "none");
-				svg.setAttribute("stroke", "currentColor");
-				svg.setAttribute("stroke-width", "1.3");
-				svg.setAttribute("stroke-linecap", "round");
-				svg.setAttribute("stroke-linejoin", "round");
-				svg.innerHTML = ICON_BODIES[key];
-				var glyph = svg.querySelector("g");
-				if (glyph) glyph.setAttribute("data-admech-glyph", key);
-			}
 			svg.setAttribute("data-admech-icon", key);
-			if (brand) {
-				svg.setAttribute("data-admech-brand", "true");
-				svg.setAttribute("width", "24");
-				svg.setAttribute("height", "24");
-			} else if (originalWidth > 20) {
-				svg.setAttribute("width", "28");
-				svg.setAttribute("height", "28");
-			}
+			if (brand) svg.setAttribute("data-admech-brand", "true");
 			return true;
 		}
 
@@ -558,17 +519,8 @@ window.__ModuleLoader__.load({
 					applyIcon(cardSvg, cardKey);
 					continue;
 				}
-				var cardImg = holderSpan.querySelector("img");
-				if (cardImg) {
-					var replacement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-					replacement.setAttribute("width", "28");
-					replacement.setAttribute("height", "28");
-					replacement.setAttribute("aria-hidden", "true");
-					replacement.setAttribute("data-admech-replacement", "true");
-					IMG_RESTORE.push({ img: cardImg, parent: cardImg.parentNode, next: cardImg.nextSibling, replacement: replacement });
-					applyIcon(replacement, cardKey);
-					cardImg.replaceWith(replacement);
-				}
+				// Leave native <img> plugin-card icons untouched: replacing nodes
+				// can also upset React's reconciliation.
 			}
 
 			// Replace the small DeepSeek whale in the hero headline with the provided
@@ -896,6 +848,7 @@ window.__ModuleLoader__.load({
 
 				activate(true);
 				forceDark();
+				ensureIconMaskStyle();
 				tagNodes();
 				replaceAllIcons();
 				showSplash();
@@ -907,9 +860,9 @@ window.__ModuleLoader__.load({
 					}
 					activate(false);
 					if (raf !== null) { try { cancelAnimationFrame(raf); } catch (e) { /* ignore */ } }
-					restoreAllIcons();
 					clearAdmechAttributes();
 					clearOrnamentVars();
+					removeIconMaskStyle();
 					if (styleEl !== null && styleEl.parentNode !== null) styleEl.parentNode.removeChild(styleEl);
 					try { window.__admechIconStats = { total: document.querySelectorAll("svg").length, replaced: 0, scanned: 0, updated: 0 }; } catch (e) { /* ignore */ }
 				};

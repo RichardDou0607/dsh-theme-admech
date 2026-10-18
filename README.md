@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.0）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.1）
 
-> **状态：v0.5.0 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.5.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -36,14 +36,14 @@
 
 
 
-## v0.4.2：关闭插件后图标恢复修复
+## v0.4.2：关闭插件后图标恢复修复（v0.5.1 已改为更安全的方案）
 
 **问题**：停用插件时，cleanup 只移除了主题 CSS 和根节点属性，没有恢复被替换的 SVG 图标（viewBox / fill / stroke / width / height / innerHTML），也没有恢复被替换成内联 SVG 的 img 元素；因此关闭插件后页面仍显示 Forge-Cathedral 图标，需要刷新才恢复。
 
 **修复**：
 
-- 在第一次替换某个 SVG 之前，记录它的全部原始 attributes 和 innerHTML（WeakMap + 记录数组）；
-- cleanup 时逐个恢复原始 attributes / innerHTML；
+- 最初方案：记录原始 attributes / innerHTML，cleanup 时恢复；该方案在 v0.5.1 因 React removeChild 冲突被移除；
+- 现在不再改写 SVG 子节点，图标改用 CSS mask 绘制，关闭插件只需移除属性即可恢复；
 - 对插件页里被替换的 img 元素记录父节点/兄弟节点，cleanup 时移除替代 SVG 并插回原 img；
 - 清理所有 data-admech / data-admech-icon / data-admech-brand / data-admech-hero-mark / data-admech-placeholder 属性；
 - 重新启用时重新记录并重新替换。
@@ -84,11 +84,48 @@
 - 跳过启动页后 layout_audit PASS：报告 .layout-guard/runs/20261018-193502-d7yl-audit/report.json；
 - 浏览器控制台无错误；启动页不依赖 macOS 专用 API。
 
+
+
+## v0.5.1：修复发送消息后输入框永久消失（React removeChild）
+
+**现象**：发送一条消息后，composer / 输入框永久消失；新建会话、切换其他会话也没有输入框，刷新才恢复。
+
+**根因**：
+
+- 原图标替换会直接改写 React 管理的原生 SVG 的 viewBox / fill / stroke / innerHTML；
+- 从 hero 输入区切换到 chat composer 时，React 尝试移除已被我们替换掉的 SVG 子节点；
+- 控制台出现：
+
+    NotFoundError: Failed to execute 'removeChild' on 'Node'
+    slot entry crashed in 'conversation.composer.bar'
+
+- composer.bar 插槽崩溃后，输入框被永久卸载。
+
+**修复（v0.5.1）**：
+
+- 不再修改 React 管理的 SVG 子节点、viewBox、fill、stroke、width、height；
+- 保留原生 SVG 树，仅加 data-admech-icon 标记，用 CSS mask + background-color: currentColor 绘制 Forge-Cathedral 图形；
+- 原生 SVG 子节点只用 CSS opacity: 0 隐藏，DOM 结构保持完整，React reconcile 安全；
+- 不再把插件页的 img 节点替换成 SVG（避免同类 removeChild 风险）；
+- 关闭插件时只移除 data-admech 属性和 mask style，原生图标立即恢复（v0.4.2 的图标回归能力保留）。
+
+**验证**（真实 DSH 0.2.1-rc.2，隔离 profile）：
+
+- 连续发送两次消息：composer 与输入框始终存在（cardCount=1 / inputCount=1）；
+- 新建会话：输入框存在；
+- 切换会话：输入框存在；
+- 控制台无错误，无 removeChild；
+- 停用插件：data-admech 属性 0，mask style 移除，原生鲸鱼/图标恢复；
+- 重新启用：图标与主题恢复；
+- 启用状态 layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-193923-32op-audit/report.json。
+
+![composer after two sends](shots/composer-after-send.png)
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-193502-d7yl-audit/report.json；
+- 报告：.layout-guard/runs/20261018-193923-32op-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

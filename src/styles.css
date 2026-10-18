@@ -803,9 +803,17 @@ html[data-dsh-admech] svg[data-admech-icon] {
   color: var(--admech-brass);
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
   flex: 0 0 auto;
+  background-color: currentColor !important;
+  -webkit-mask: var(--admech-icon-mask) center / contain no-repeat !important;
+  mask: var(--admech-icon-mask) center / contain no-repeat !important;
+}
+html[data-dsh-admech] svg[data-admech-icon] > * {
+  opacity: 0 !important;
 }
 html[data-dsh-admech] svg[data-admech-icon][data-admech-brand] {
   color: var(--admech-brass-bright);
+  width: 24px !important;
+  height: 24px !important;
   filter: drop-shadow(0 0 9px rgba(201, 161, 90, 0.45));
 }
 html[data-dsh-admech] button[aria-label="发送消息"] svg[data-admech-icon] { color: #f7ecd5; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
