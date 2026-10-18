@@ -392,6 +392,24 @@ window.__ModuleLoader__.load({
 
 		var ROW_ICONS_SORTED = ROW_ICONS.slice().sort(function (a, b) { return b[0].length - a[0].length; });
 
+		// Conversation process states (see ChatGroupSeat PROCESS_ICONS in DSH).
+		var PROCESS_ICON_KEYS = {
+			thinking: "process_think",
+			read: "process_read",
+			readImage: "process_read",
+			search: "search",
+			edit: "process_edit",
+			write: "process_edit",
+			commands: "terminal",
+			code: "process_code",
+			webSearch: "search",
+			webFetch: "process_web",
+			subagents: "trinity",
+			plan: "process_plan",
+			questions: "vox",
+			tools: "tools"
+		};
+
 		// React owns the native SVG trees. Never replace their children: a composer
 		// transition can then crash with removeChild / slot entry errors. Paint the
 		// Forge-Cathedral glyph as a CSS mask over the untouched SVG box instead.
@@ -522,6 +540,25 @@ window.__ModuleLoader__.load({
 				// Leave native <img> plugin-card icons untouched: replacing nodes
 				// can also upset React's reconciliation.
 			}
+
+			// Conversation process rows: replace the native DSH activity glyphs with
+			// Forge-Cathedral cogitator / codex / vox glyphs. The SVG tree is untouched;
+			// only the data attribute + CSS mask are applied.
+			var stepButtons = document.querySelectorAll("[data-process-activity]");
+			for (var sb = 0; sb < stepButtons.length; sb++) {
+				var stepButton = stepButtons[sb];
+				var stepActivity = stepButton.getAttribute("data-process-activity") || "";
+				var stepKey = PROCESS_ICON_KEYS[stepActivity];
+				if (!stepKey) continue;
+				var stepSvg = stepButton.querySelector("[data-step-process-icon] svg");
+				if (stepSvg) applyIcon(stepSvg, stepKey);
+			}
+
+			// "深度求索中" running status: replace the animated whale tail with a
+			// slowly turning cogitator eye. The native still SVG is reused as the mask
+			// host; the APNG whale is hidden in CSS.
+			var runningSvg = document.querySelector("[data-chat-running] [class*=\"runningIcon\"] svg");
+			if (runningSvg) applyIcon(runningSvg, "process_think");
 
 			// Replace the small DeepSeek whale in the hero headline with the provided
 			// gear-skull standard.

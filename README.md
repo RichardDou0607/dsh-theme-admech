@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.1）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.2）
 
-> **状态：v0.5.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.5.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -121,11 +121,46 @@
 
 ![composer after two sends](shots/composer-after-send.png)
 
+
+
+## v0.5.2：深度求索中 + 对话过程图标重设计
+
+![process icons](shots/process-icons.png)
+
+将 DeepSeek 的鲸鱼/内置过程图标替换为 Forge-Cathedral 原生图形：
+
+- **深度求索中**：隐藏原生 APNG 鲸鱼，复用原生 SVG 作为 mask 宿主，显示缓慢旋转的**机魂之眼**（齿轮 + 眼），保留呼吸式辉光；
+- **进行中状态**的文字改为衬线字体 + 黄铜色，并保留 shimmer；
+- **对话过程步骤**按 DSH 的 data-process-activity 映射：
+
+| DSH 状态 | 图标 |
+|---|---|
+| thinking / 正在分析请求 | process_think（机魂之眼） |
+| read / readImage | process_read（圣典） |
+| webFetch | process_web（罗盘） |
+| search / webSearch | search（带十字准星的透镜） |
+| edit / write | process_edit（羽毛笔） |
+| commands | terminal（终端圣龛） |
+| code | process_code（代码终端） |
+| subagents | trinity（三机魂节点） |
+| plan | process_plan（计划卷轴） |
+| questions | vox（声讯） |
+| tools | tools（工具） |
+
+实现方式仍是 **CSS mask over untouched native SVG**：不替换 React 节点、不改写 SVG 子节点，因此不会重新引入 composer 的 removeChild 崩溃；关闭插件时只移除属性与 mask style，原生图标恢复。所有动画在系统开启减少动态效果时关闭。
+
+验证：
+
+- 按 data-process-activity 全覆盖检查：12 个状态均映射到对应图标；
+- 合成 DOM 渲染检查（含 running 状态）通过，控制台无错误；
+- 真实发送消息后 composer 仍存在（cardCount=1 / inputCount=1）；
+- 启用状态 layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-194539-yohz-audit/report.json。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-193923-32op-audit/report.json；
+- 报告：.layout-guard/runs/20261018-194539-yohz-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 
