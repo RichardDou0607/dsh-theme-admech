@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.3）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.0）
 
-> **状态：v0.5.3 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.6.0 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -156,11 +156,47 @@
 - 真实发送消息后 composer 仍存在（cardCount=1 / inputCount=1）；
 - 启用状态 layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-194539-yohz-audit/report.json。
 
+
+
+## v0.6.0：文件卡框体重设计 + 展开详情图标修正
+
+![reliquary cards](shots/cards-reliquary-preview.png)
+
+### 文件卡 / 已编辑文件框
+
+- 已编辑文件卡（data-changed-files）：黄铜遗物框、双线内框、四角花窗、标题衬线化、文件路径等宽字体、diff 行使用暗橄榄绿 / 暗火星红；
+- 交付文件卡（data-presented-file）：同样的遗物框语言，图标盒改为黄铜边框 + 暗色底，文件名衬线化，说明文字等宽化；
+- 行悬停、展开按钮、操作按钮都加了黄铜 hover 与内阴影；
+- 不修改组件 DOM，只做 CSS 覆盖；不引入新的 React 节点。
+
+### 展开详细内容后的图标
+
+上一版只替换了 process 组头部的 activity 图标。展开 process 组后，内部 ToolRow 仍显示 DSH 原生工具图标，因此出现“展开后原型鄙陋”的问题。v0.6.0 追加：
+
+- 按 ToolRow 的 data-tool / data-variant 映射到同一套 Forge-Cathedral 图标：
+  - read_file → process_read
+  - write_file → process_edit
+  - terminal / bash → terminal
+  - grep / search → search
+  - web_fetch → process_web
+  - run_code / code → process_code
+  - subagent → trinity
+  - plan → process_plan
+- 对未知工具名增加前缀/关键字 fallback，避免展开后掉回原生图标；
+- 仍然使用 CSS mask，SVG 原生树不替换，composer 崩溃修复保持。
+
+验证：
+
+- 8 种展开详情 ToolRow 全部命中对应图标；
+- 文件卡合成 DOM 渲染检查通过；
+- 真实发送消息后 composer 仍存在（cardCount=1 / inputCount=1），控制台 0 errors；
+- layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-195243-qhye-audit/report.json。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-194539-yohz-audit/report.json；
+- 报告：.layout-guard/runs/20261018-195243-qhye-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

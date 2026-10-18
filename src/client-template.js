@@ -393,6 +393,42 @@ window.__ModuleLoader__.load({
 		var ROW_ICONS_SORTED = ROW_ICONS.slice().sort(function (a, b) { return b[0].length - a[0].length; });
 
 		// Conversation process states (see ChatGroupSeat PROCESS_ICONS in DSH).
+		// Expanded process detail renders ToolRow with data-tool / data-variant.
+		// Map those native leading glyphs too, so expanding details does not fall
+		// back to the default DSH icons.
+		var TOOL_ICON_KEYS = {
+			read: "process_read",
+			read_file: "process_read",
+			read_image: "process_read",
+			view_image: "process_read",
+			write: "process_edit",
+			edit: "process_edit",
+			apply_patch: "process_edit",
+			bash: "terminal",
+			shell: "terminal",
+			terminal: "terminal",
+			execute: "terminal",
+			grep: "search",
+			glob: "search",
+			search: "search",
+			web_search: "search",
+			web_fetch: "process_web",
+			code: "process_code",
+			run_code: "process_code",
+			subagent: "trinity",
+			plan: "process_plan",
+			ask_user_question: "vox"
+		};
+		var TOOL_VARIANT_ICONS = {
+			read: "process_read",
+			search: "search",
+			bash: "terminal",
+			write: "process_edit",
+			edit: "process_edit",
+			code: "process_code",
+			others: "tools"
+		};
+
 		var PROCESS_ICON_KEYS = {
 			thinking: "process_think",
 			read: "process_read",
@@ -552,6 +588,30 @@ window.__ModuleLoader__.load({
 				if (!stepKey) continue;
 				var stepSvg = stepButton.querySelector("[data-step-process-icon] svg");
 				if (stepSvg) applyIcon(stepSvg, stepKey);
+			}
+
+			// Expanded process detail: ToolRow leading icons.
+			var toolRows = document.querySelectorAll("[data-tool]");
+			for (var tr = 0; tr < toolRows.length; tr++) {
+				var toolRow = toolRows[tr];
+				var toolName = toolRow.getAttribute("data-tool") || "";
+				var toolVariant = toolRow.getAttribute("data-variant") || "";
+				var toolKey = TOOL_ICON_KEYS[toolName];
+				if (!toolKey) {
+					if (toolName.indexOf("subagent") === 0) toolKey = "trinity";
+					else if (toolName.indexOf("web_search") !== -1 || toolName.indexOf("search") !== -1) toolKey = "search";
+					else if (toolName.indexOf("web") !== -1) toolKey = "process_web";
+					else if (toolName.indexOf("read") !== -1) toolKey = "process_read";
+					else if (toolName.indexOf("write") !== -1 || toolName.indexOf("edit") !== -1) toolKey = "process_edit";
+					else if (toolName.indexOf("bash") !== -1 || toolName.indexOf("command") !== -1) toolKey = "terminal";
+					else if (toolName.indexOf("code") !== -1) toolKey = "process_code";
+					else if (toolName.indexOf("plan") !== -1) toolKey = "process_plan";
+				}
+				if (!toolKey) toolKey = TOOL_VARIANT_ICONS[toolVariant];
+				if (!toolKey) continue;
+				var leadingWrap = toolRow.querySelector("[class*=\"leading\"]");
+				var toolSvg = leadingWrap ? leadingWrap.querySelector("svg") : null;
+				if (toolSvg) applyIcon(toolSvg, toolKey);
 			}
 
 			// "深度求索中" running status: replace the animated whale tail with a
