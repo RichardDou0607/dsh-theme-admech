@@ -1,0 +1,53 @@
+{
+  "name": "dsh-theme-admech",
+  "version": "0.4.0",
+  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.4: user-provided gear-skull standard (recolored + scaled), faceted gothic portal backdrop, angular shrine crest above the composer, cathedral-framed chat, provided emblem replacing the hero whale. 机械神教 · 铸炉圣殿 v0.4。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "assets",
+    "README.md"
+  ],
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "tech-gothic",
+    "admech",
+    "mechanicus",
+    "dark-theme",
+    "web-ui"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node src/build-client.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RichardDou0607/dsh-theme-admech.git"
+  },
+  "homepage": "https://github.com/RichardDou0607/dsh-theme-admech#readme",
+  "bugs": {
+    "url": "https://github.com/RichardDou0607/dsh-theme-admech/issues"
+  }
+}

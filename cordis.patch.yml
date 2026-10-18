@@ -1,0 +1,7 @@
+# dsh-theme-admech bundle patch: one profile row.
+# Host half is a no-op; the browser half ships via exports["./client"] and the
+# package.json dsh.client declaration.
+
+- insert:
+    - id: theme-admech
+      name: 'dsh-theme-admech'
