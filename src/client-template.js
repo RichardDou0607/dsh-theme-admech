@@ -717,6 +717,13 @@ window.__ModuleLoader__.load({
 					if (foot) foot.setAttribute("data-admech", "footer");
 				}
 				mark("[data-slot=\"main\"] header", "header");
+				// Native Platform WebContentsView host: mark it so the generic dialog
+				// frame never changes its fixed full-window layout/bounds.
+				var platformHeader = document.querySelector("[role=\"dialog\"] [data-window-drag]");
+				if (platformHeader) {
+					var platformDialog = platformHeader.closest("[role=\"dialog\"]");
+					if (platformDialog) platformDialog.setAttribute("data-admech-platform-overlay", "true");
+				}
 				var markEl = document.querySelector("[data-slot=\"conversation.hero.brand.mark\"]");
 				if (markEl && markEl.parentElement && markEl.parentElement.parentElement) {
 					markEl.parentElement.parentElement.setAttribute("data-admech", "hero-headline");

@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.2）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.3）
 
-> **状态：v0.6.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.6.3 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -239,11 +239,59 @@ v0.6.2 增加的防御性处理：
 
 如果你的环境里仍打不开，请提供“点击后具体表现”（无反应 / 空白原生页 / 报错）以及 DevTools Console 错误；这通常需要区分是账号状态 links 缺失、WebContentsView 宿主问题，还是 DSH 版本问题。
 
+
+
+## v0.6.3：修复查询用量 / 充值原生页加载失败
+
+### 根因
+
+DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebContentsView。它的宿主 DOM 是一个：
+
+    <div role="dialog" aria-modal="true">
+      <header data-window-drag="true">…返回 DeepSeek Harness…</header>
+      <div class="…viewport">…</div>
+    </div>
+
+主题的通用 role=dialog 哥特框样式把它也当成了普通对话框，覆盖了它的：
+
+    position: fixed; inset: 0; overflow: visible; border; background; …
+
+导致 PlatformOverlay 的 .viewport 尺寸/位置错误，bridge.open(page, bounds) 拿不到有效 bounds，加载失败，只显示“操作未完成，请重试 / 返回 DeepSeek Harness”。
+
+### 修复
+
+- 用 role=dialog:has(> header [data-window-drag]) 识别原生 Platform 宿主；
+- JS 同时打上 data-admech-platform-overlay="true" 作为兼容标记；
+- 对这两种选择器强制恢复：
+
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    background: var(--dsw-alias-bg-base);
+    background-image: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+- 隐藏主题的 ::before / ::after（内框与徽章），不再影响原生页 bounds。
+
+### 验证
+
+合成 PlatformOverlay DOM 检查：
+
+- position: fixed，inset: 0；
+- 900px 高窗口下 viewport 为 1440×852（header 48px 之后）；
+- border: 0，border-radius: 0，background-image: none；
+- 主题伪元素 display: none；
+- layout_audit PASS，报告 .layout-guard/runs/20261018-200526-gdvk-audit/report.json。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-200126-dxf4-audit/report.json；
+- 报告：.layout-guard/runs/20261018-200526-gdvk-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

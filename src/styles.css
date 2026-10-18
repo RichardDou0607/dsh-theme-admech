@@ -764,6 +764,31 @@ html[data-dsh-admech] [data-slot*="account"] button {
   z-index: 2;
 }
 
+/* The native Platform page is hosted in a full-window WebContentsView. Never
+   apply the generic cathedral dialog frame to its DOM container (position /
+   inset / overflow changes move or collapse the native view bounds). */
+html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag]),
+html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1001 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--dsw-alias-bg-base) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::before,
+html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::after,
+html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"]::before,
+html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"]::after {
+  display: none !important;
+  content: none !important;
+}
+
 /* ---------- chat surfaces ---------- */
 
 html[data-dsh-admech] [data-conversation-content] h1,
