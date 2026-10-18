@@ -18,12 +18,59 @@ window.__ModuleLoader__.load({
 
 		var THEME_ID = "admech";
 		var ACTIVE_ATTR = "data-dsh-admech";
+		var OS_ATTR = "data-admech-os";
 
 		var ICON_BODIES = __ICON_BODIES__;
 		var CSS = __CSS_JSON__;
 		var BG_URI = "__BG_URI__";
 		var EMBLEM_URI = "__EMBLEM_URI__";
-		var PLUGIN_VERSION = "0.2.0";
+		// 64px source: only ever painted as a mask over a 16-24px icon box.
+		var EMBLEM_MASK_URI = "__EMBLEM_MASK_URI__";
+		var PLUGIN_VERSION = "0.7.0";
+
+		var OS = detectOs();
+		var DPR = detectDpr();
+
+		function detectOs() {
+			var raw = "";
+			try {
+				// The desktop preload marks the document before the app boots; a plain
+				// browser has only the user agent, which is enough to pick a target.
+				var de = document.documentElement;
+				raw = (de && de.getAttribute("data-platform")) || "";
+				if (!raw) {
+					var navigator_ = window.navigator || {};
+					raw = (navigator_.userAgentData && navigator_.userAgentData.platform)
+						|| navigator_.platform
+						|| navigator_.userAgent
+						|| "";
+				}
+			} catch (e) { raw = ""; }
+			if (/win/i.test(raw)) return "win";
+			if (/darwin|mac/i.test(raw)) return "mac";
+			if (/linux/i.test(raw)) return "linux";
+			return "web";
+		}
+
+		function detectDpr() {
+			var ratio = 1;
+			try { ratio = window.devicePixelRatio || 1; } catch (e) { ratio = 1; }
+			if (!isFinite(ratio) || ratio <= 0) ratio = 1;
+			// Clamp: a browser zoom of 400% should not ask for a 0.25px rule.
+			return Math.max(1, Math.min(3, ratio));
+		}
+
+		// Windows display scaling (125% / 150%) maps a 1 CSS px rule onto a
+		// fractional device pixel, which Chromium paints as a dim, soft band.
+		// Target one device pixel below 175% scaling and keep the retina-weight
+		// 1 CSS px at 200%; other platforms keep the authored 1px.
+		var HAIRLINE = (OS === "win" && DPR < 1.75) ? round3(1 / DPR) : 1;
+		// Small ornaments are drawn in a 48-unit box and displayed at 20-26px, so
+		// their strokes land at ~0.6 CSS px. Boost the stroke on low-density
+		// displays so the filigree survives rasterisation.
+		var MINI_STROKE = round3(Math.max(1.15, 1.7 / DPR));
+
+		function round3(n) { return Math.round(n * 1000) / 1000; }
 
 		/* ------------------------------------------------------------------ */
 		/* Palette / tokens — pure A                                            */
@@ -229,21 +276,27 @@ window.__ModuleLoader__.load({
 			return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
 		}
 
-		var CORNER_GLYPH = "<g stroke='#c9a15a' stroke-width='1.15' stroke-linecap='round' stroke-linejoin='round'>"
+		var CORNER_GLYPH_BODY = "<g stroke='#c9a15a' stroke-width='__STROKE__' stroke-linecap='round' stroke-linejoin='round'>"
 			+ "<path d='M2.5 46V16.5C2.5 8.5 8.5 2.5 16.5 2.5H46' opacity='.9'/>"
 			+ "<path d='M7.5 46V18.5C7.5 12.5 12.5 7.5 18.5 7.5H46' opacity='.5'/>"
 			+ "<path d='M13.5 34V22c0-4.7 3.8-8.5 8.5-8.5h12' opacity='.85'/>"
 			+ "<path d='M13.5 27h6M13.5 33h4' opacity='.7'/>"
 			+ "<circle cx='22' cy='22' r='3.2'/><path d='M22 18.2v-3M18.2 22h-3'/>"
 			+ "</g>";
-		function corner(rot) { return svgUri(48, 48, "<g transform='rotate(" + rot + " 24 24)'>" + CORNER_GLYPH + "</g>"); }
+		function cornerGlyph(stroke) {
+			return CORNER_GLYPH_BODY.replace("__STROKE__", String(stroke === undefined ? 1.15 : stroke));
+		}
+		// Two sets: the composer (42px) and dialog (48px) frames use the authored
+		// weight, the 20-26px card corners use the density-corrected weight.
+		function corner(rot, stroke) { return svgUri(48, 48, "<g transform='rotate(" + rot + " 24 24)'>" + cornerGlyph(stroke) + "</g>"); }
+		function cornerSmall(rot) { return corner(rot, MINI_STROKE); }
 
 		var ARCH_INNER = "<g stroke='#c9a15a' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'>"
 			+ "<path d='M8 76V48C8 24 52 6 120 6s112 18 112 42v28' opacity='.9'/>"
 			+ "<path d='M28 76V50c0-14 40-24 92-24s92 10 92 24v26' opacity='.45'/>"
 			+ "<path d='M120 6V1M104 12l16-10 16 10'/>"
 			+ "<image href='" + EMBLEM_URI + "' x='101' y='18' width='38' height='38'/>"
-			+ "<text x='120' y='72' text-anchor='middle' font-family='Palatino, serif' font-size='7' letter-spacing='2' fill='#c9a15a' opacity='.7'>EX FERRO · EX IGNE</text>"
+			+ "<text x='120' y='72' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='7' letter-spacing='2' fill='#c9a15a' opacity='.7'>EX FERRO · EX IGNE</text>"
 			+ "</g>";
 		var ARCH = svgUri(240, 80, ARCH_INNER);
 
@@ -262,7 +315,7 @@ window.__ModuleLoader__.load({
 			+ "<path d='M124 8 L130 0 L136 8'/>"
 			+ "<path d='M20 94H240' opacity='.6'/>"
 			+ "<path d='M54 94V70H74V94M186 94V70H206V94' opacity='.5'/>"
-			+ "<text x='130' y='104' text-anchor='middle' font-family='Palatino, serif' font-size='6.5' letter-spacing='2' fill='#c9a15a' opacity='.75'>EX FERRO · EX IGNE</text>"
+			+ "<text x='130' y='104' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='6.5' letter-spacing='2' fill='#c9a15a' opacity='.75'>EX FERRO · EX IGNE</text>"
 			+ "</g>";
 		var SHRINE = svgUri(260, 110, SHRINE_INNER);
 
@@ -296,9 +349,9 @@ window.__ModuleLoader__.load({
 			+ "<path d='M192 128V92L330 34L468 92V128' opacity='.4'/>"
 			+ "<path d='M330 10V0M318 8 L330 -4 L342 8' opacity='.75'/>"
 			+ "<image href='" + EMBLEM_URI + "' x='300' y='46' width='60' height='60'/>"
-			+ "<text x='330' y='120' text-anchor='middle' font-family='Palatino, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.5'>ADEPTUS MECHANICUS · CULTUS MACHINAE · MARS</text>"
-			+ "<text x='120' y='120' text-anchor='middle' font-family='Palatino, serif' font-size='7' letter-spacing='3' fill='#c9a15a' opacity='.35'>EX FERRO</text>"
-			+ "<text x='540' y='120' text-anchor='middle' font-family='Palatino, serif' font-size='7' letter-spacing='3' fill='#c9a15a' opacity='.35'>EX IGNE</text>"
+			+ "<text x='330' y='120' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.5'>ADEPTUS MECHANICUS · CULTUS MACHINAE · MARS</text>"
+			+ "<text x='120' y='120' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='7' letter-spacing='3' fill='#c9a15a' opacity='.35'>EX FERRO</text>"
+			+ "<text x='540' y='120' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='7' letter-spacing='3' fill='#c9a15a' opacity='.35'>EX IGNE</text>"
 			+ "</g>";
 		var CONV_TOP = svgUri(660, 130, CONV_TOP_INNER);
 
@@ -308,7 +361,7 @@ window.__ModuleLoader__.load({
 			var cbx = 46 + ci * 66;
 			CONV_BOTTOM_INNER += "<path d='M" + cbx + " 62V50Q" + (cbx + 16) + " 34 " + (cbx + 32) + " 50V62' opacity='.5'/>";
 		}
-		CONV_BOTTOM_INNER += "<text x='330' y='26' text-anchor='middle' font-family='Palatino, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.4'>IN TENEBRIS LUX · SURGIMUS · MACHINA AETERNA</text>";
+		CONV_BOTTOM_INNER += "<text x='330' y='26' text-anchor='middle' font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.4'>IN TENEBRIS LUX · SURGIMUS · MACHINA AETERNA</text>";
 		CONV_BOTTOM_INNER += "</g>";
 		var CONV_BOTTOM = svgUri(660, 72, CONV_BOTTOM_INNER);
 
@@ -317,7 +370,7 @@ window.__ModuleLoader__.load({
 			+ "<path d='M12 22H52M12 298H52' opacity='.6'/>"
 			+ "<path d='M18 22V8M32 22V8M46 22V8' opacity='.4'/>"
 			+ "<path d='M24 32V288M40 32V288' opacity='.2'/>"
-			+ "<g transform='translate(8 170) rotate(-90)'><text font-family='Palatino, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.45'>IN TENEBRIS · LUX AETERNA</text></g>"
+			+ "<g transform='translate(8 170) rotate(-90)'><text font-family='Palatino Linotype, Palatino, Georgia, serif' font-size='8' letter-spacing='4' fill='#c9a15a' opacity='.45'>IN TENEBRIS · LUX AETERNA</text></g>"
 			+ "</g>";
 		var CONV_RAIL = svgUri(64, 320, CONV_RAIL_INNER);
 
@@ -468,7 +521,7 @@ window.__ModuleLoader__.load({
 				if (!Object.prototype.hasOwnProperty.call(ICON_BODIES, key)) continue;
 				var mask;
 				if (key === "emblem") {
-					mask = 'url("' + EMBLEM_URI + '")';
+					mask = 'url("' + EMBLEM_MASK_URI + '")';
 				} else {
 					var raw = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="none">' + ICON_BODIES[key].replace(/currentColor/g, "#ffffff") + '</svg>';
 					mask = 'url("data:image/svg+xml,' + encodeURIComponent(raw) + '")';
@@ -661,6 +714,10 @@ window.__ModuleLoader__.load({
 				root.style.setProperty("--admech-corner-tr", corner(90));
 				root.style.setProperty("--admech-corner-br", corner(180));
 				root.style.setProperty("--admech-corner-bl", corner(270));
+				root.style.setProperty("--admech-corner-sm-tl", cornerSmall(0));
+				root.style.setProperty("--admech-corner-sm-tr", cornerSmall(90));
+				root.style.setProperty("--admech-corner-sm-br", cornerSmall(180));
+				root.style.setProperty("--admech-corner-sm-bl", cornerSmall(270));
 				root.style.setProperty("--admech-arch", ARCH);
 				root.style.setProperty("--admech-shrine", SHRINE);
 				root.style.setProperty("--admech-emblem-img", "url(\"" + EMBLEM_URI + "\")");
@@ -670,15 +727,18 @@ window.__ModuleLoader__.load({
 				root.style.setProperty("--admech-conv-top", CONV_TOP);
 				root.style.setProperty("--admech-conv-bottom", CONV_BOTTOM);
 				root.style.setProperty("--admech-conv-rail", CONV_RAIL);
+				root.setAttribute(OS_ATTR, OS);
+				root.style.setProperty("--admech-hairline", HAIRLINE + "px");
 			} catch (e) { /* ignore */ }
 		}
 
 		function clearOrnamentVars() {
 			var root = document.documentElement;
-			var names = ["--admech-bg", "--admech-corner-tl", "--admech-corner-tr", "--admech-corner-br", "--admech-corner-bl", "--admech-arch", "--admech-shrine", "--admech-emblem-img", "--admech-medallion", "--admech-seal", "--admech-divider", "--admech-conv-top", "--admech-conv-bottom", "--admech-conv-rail"];
+			var names = ["--admech-bg", "--admech-corner-tl", "--admech-corner-tr", "--admech-corner-br", "--admech-corner-bl", "--admech-corner-sm-tl", "--admech-corner-sm-tr", "--admech-corner-sm-br", "--admech-corner-sm-bl", "--admech-arch", "--admech-shrine", "--admech-emblem-img", "--admech-medallion", "--admech-seal", "--admech-divider", "--admech-conv-top", "--admech-conv-bottom", "--admech-conv-rail", "--admech-hairline"];
 			for (var i = 0; i < names.length; i++) {
 				try { root.style.removeProperty(names[i]); } catch (e) { /* ignore */ }
 			}
+			try { root.removeAttribute(OS_ATTR); } catch (e) { /* ignore */ }
 		}
 
 		function forceDark() {
@@ -758,6 +818,11 @@ window.__ModuleLoader__.load({
 
 		var SPLASH_SHOWN = false;
 		var SPLASH_CLEANUP = null;
+		// True while the ignition overlay covers the app: DOM work underneath it is
+		// invisible, so the mutation observer stays idle until it is removed.
+		var SPLASH_ACTIVE = false;
+		// Set by apply(): re-runs the tagging pass once the overlay is gone.
+		var NOTIFY = null;
 
 		var SPLASH_FRAME = [
 			'<svg class="admech-splash-frameart" viewBox="0 0 560 760" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
@@ -771,8 +836,8 @@ window.__ModuleLoader__.load({
 			'<path d="M12 612 L0 650 M548 612 L560 650" stroke="#c9a15a" stroke-opacity=".35"/>',
 			'<path d="M170 120 H390 M150 140 H410 M130 160 H430" stroke="#c9a15a" stroke-opacity=".20"/>',
 			'<path d="M280 88 l10 10 -10 10 -10 -10Z M190 170 l7 7 -7 7 -7 -7Z M370 170 l7 7 -7 7 -7 -7Z" stroke="#e3c184" stroke-opacity=".55" fill="none"/>',
-			'<text x="280" y="116" text-anchor="middle" font-family="Palatino, serif" font-size="11" letter-spacing="5" fill="#c9a15a" opacity=".55">FORGE-CATHEDRAL</text>',
-			'<text x="280" y="716" text-anchor="middle" font-family="Palatino, serif" font-size="9" letter-spacing="4" fill="#c9a15a" opacity=".45">MACHINA · MARS · LUX AETERNA</text>',
+			'<text x="280" y="116" text-anchor="middle" font-family="Palatino Linotype, Palatino, Georgia, serif" font-size="11" letter-spacing="5" fill="#c9a15a" opacity=".55">FORGE-CATHEDRAL</text>',
+			'<text x="280" y="716" text-anchor="middle" font-family="Palatino Linotype, Palatino, Georgia, serif" font-size="9" letter-spacing="4" fill="#c9a15a" opacity=".45">MACHINA · MARS · LUX AETERNA</text>',
 			'<path d="M80 680 H480 M110 696 H450" stroke="#c9a15a" stroke-opacity=".22"/>',
 			'<g class="admech-splash-side">',
 			'<path d="M88 250 V620 M472 250 V620" stroke="#c9a15a" stroke-opacity=".30"/>',
@@ -806,6 +871,9 @@ window.__ModuleLoader__.load({
 			} catch (e) { /* ignore */ }
 			var reduced = false;
 			try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
+			// Windows "Animation effects: off" maps to this query. A three-second
+			// full-screen overlay is exactly what the setting asks us not to do.
+			if (reduced) return;
 
 			var logs = [
 				"NOOSPHERE LINK ................ ESTABLISHED",
@@ -846,6 +914,7 @@ window.__ModuleLoader__.load({
 				+ '</div>'
 				+ '<div class="admech-splash-footer"><div>OMNISSIAH · DEUS MACHINA · EX FERRO · EX IGNE · IN TENEBRIS LUX AETERNA</div><div class="tiny">UNOFFICIAL FAN WORK · FORGE-CATHEDRAL v0.5.0</div></div>';
 			document.body.appendChild(wrap);
+			SPLASH_ACTIVE = true;
 
 			var fill = wrap.querySelector(".rail i");
 			var pctEl = wrap.querySelector(".pct");
@@ -875,6 +944,10 @@ window.__ModuleLoader__.load({
 					if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
 				} catch (e) { /* ignore */ }
 				SPLASH_CLEANUP = null;
+				SPLASH_ACTIVE = false;
+				// The app mounted behind the overlay while the observer was idle: catch up
+				// in one pass now that the window is visible again.
+				if (NOTIFY) { try { NOTIFY(); } catch (e) { /* ignore */ } }
 			}
 
 			function dismiss() {
@@ -923,6 +996,19 @@ window.__ModuleLoader__.load({
 			var raf = null;
 			var disposers = [];
 
+			// Windows laptops are routinely dragged between a 100% and a 150% panel.
+			// Re-derive the hairline width and the small-ornament stroke when the
+			// device pixel ratio actually changes.
+			function onDensityChange() {
+				var next = detectDpr();
+				if (next === DPR) return;
+				DPR = next;
+				HAIRLINE = (OS === "win" && DPR < 1.75) ? round3(1 / DPR) : 1;
+				MINI_STROKE = round3(Math.max(1.15, 1.7 / DPR));
+				setOrnamentVars();
+			}
+			try { window.addEventListener("resize", onDensityChange); } catch (e) { /* ignore */ }
+
 			function schedule() {
 				if (raf !== null) return;
 				raf = window.requestAnimationFrame(function () {
@@ -937,19 +1023,33 @@ window.__ModuleLoader__.load({
 					html.setAttribute(ACTIVE_ATTR, "on");
 					forceDark();
 					setOrnamentVars();
+					NOTIFY = schedule;
 					schedule();
 					if (observer === null && document.body) {
+						var lastScan = 0;
 						observer = new MutationObserver(function (records) {
+							// The host writes inline transforms while virtualized rows scroll and
+							// streams nodes while a turn runs; coalesce those bursts instead of
+							// re-running the full tagging pass on every frame.
+							if (SPLASH_ACTIVE) return;
+							var now = (window.performance && performance.now) ? performance.now() : Date.now();
+							if (now - lastScan < 120) return;
 							for (var i = 0; i < records.length; i++) {
 								var rec = records[i];
-								if (rec.type === "childList") { schedule(); return; }
-								if (rec.type === "attributes" && rec.attributeName !== "data-admech" && rec.attributeName !== "data-admech-icon" && rec.attributeName !== ACTIVE_ATTR) { schedule(); return; }
+								if (rec.type === "childList") { lastScan = now; schedule(); return; }
+								if (rec.type === "attributes") {
+									// Our own writes must not feed the loop back into itself.
+									var name = rec.attributeName;
+									if (name === "style" || name === "data-admech" || name === "data-admech-icon" || name === "data-admech-ph" || name === ACTIVE_ATTR) continue;
+									lastScan = now; schedule(); return;
+								}
 							}
 						});
 						observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 					}
 				} else {
 					html.removeAttribute(ACTIVE_ATTR);
+					NOTIFY = null;
 					if (observer !== null) { observer.disconnect(); observer = null; }
 				}
 			}
@@ -982,6 +1082,7 @@ window.__ModuleLoader__.load({
 				showSplash();
 
 				return function cleanup() {
+					try { window.removeEventListener("resize", onDensityChange); } catch (e) { /* ignore */ }
 					if (SPLASH_CLEANUP) { try { SPLASH_CLEANUP(); } catch (e) { /* ignore */ } SPLASH_CLEANUP = null; }
 					for (var i = 0; i < disposers.length; i++) {
 						try { disposers[i](); } catch (e) { /* ignore */ }
@@ -991,6 +1092,13 @@ window.__ModuleLoader__.load({
 					clearAdmechAttributes();
 					clearOrnamentVars();
 					removeIconMaskStyle();
+					// forceDark() also pins the document color scheme and the body's dark
+					// marker; leaving them behind keeps native menus, scrollbars and form
+					// controls dark after the plugin is disabled.
+					try {
+						document.documentElement.style.colorScheme = "";
+						if (document.body) document.body.removeAttribute("data-ds-dark-theme");
+					} catch (e) { /* ignore */ }
 					if (styleEl !== null && styleEl.parentNode !== null) styleEl.parentNode.removeChild(styleEl);
 					try { window.__admechIconStats = { total: document.querySelectorAll("svg").length, replaced: 0, scanned: 0, updated: 0 }; } catch (e) { /* ignore */ }
 				};

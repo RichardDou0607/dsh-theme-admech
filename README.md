@@ -1,6 +1,7 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.3）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.0）
 
-> **状态：v0.6.3 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.7.0 已实现。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收。**
+> Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -294,6 +295,7 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 - 报告：.layout-guard/runs/20261018-200526-gdvk-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
+- **Windows 11 真机（v0.7.0）**：1440×900 @100%、1440×900 @125%、1920×1080 @150%、1280×800 @125%、Snap 1100×760 / 900×720、窄窗 760×640 共 9 个视口，均为 **文字裁切 0 / 交互元素重叠 0 / 控制台 0 报错**；另验收 Windows 标题栏条、高对比度主题、减少动态效果三条平台路径。详见文末「Windows 适配（v0.7.0 · 实测）」。
 
 ## 安装
 
@@ -350,9 +352,15 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 
 也可以直接下载仓库 ZIP，解压后以本地目录安装。
 
+> **Windows 提示**：`github:` 规格依赖 Git 与可用代理，在「代理失效 / 证书链不全」的机器上会直接失败（实测见文末）。Windows 上推荐「下载 ZIP → 本地 `file:` 安装」，完全离线且不需要 Git。
+
 ### DSH Web / CLI
 
     dsh plugin --profile web add "github:RichardDou0607/dsh-theme-admech"
+
+Windows 上若上面这条因为代理 / 证书失败，改用本地目录（实测可用）：
+
+    dsh plugin --profile web add "file:C:\dsh-theme-admech\dsh-theme-admech-main"
 
 ## 许可 / IP（重要）
 
@@ -367,16 +375,175 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 
 
 
-## Windows 适配状况（v0.4.1）
+## Windows 适配（v0.7.0 · 实测）
 
-- **代码层面**：主题是纯 Web client 插件，没有 macOS 专用 API；Windows 版 DSH Desktop 使用同一套 Chromium/Node Web UI，理论兼容。
-- **字体**：v0.4.1 已加入 Windows 回退：Palatino Linotype / SimSun / NSimSun / Microsoft YaHei / Cascadia Mono / Consolas。即使没有 Noto Serif CJK 或 Songti SC，也会落到 Windows 自带字体。
-- **安装**：
-  - 推荐在「插件」页输入 Git 地址安装；Windows 需要系统已安装 **Git for Windows**（pnpm 通过 git 拉取 github: 依赖）；
-  - 如果没有 Git，或 Git 安装失败：下载 GitHub 仓库 ZIP → 解压 → 在插件页选择本地目录安装；
-  - Windows 路径示例：C:\Users\<你的用户名>\Downloads\dsh-theme-admech-main
-- **已知差异**：
-  - Windows 125% / 150% 缩放、以及缺少 Palatino/Noto 时，字体行高和字距可能与 macOS 截图略有差异；
-  - 背景 / 徽记 / 装饰均为内嵌 data URI，不依赖 macOS 路径；
-  - 构建脚本使用 Node path API，可在 Windows 下运行 node src/build-client.mjs。
-- **未验证**：当前实际渲染与 layout_audit 是在 macOS 的 DSH 0.2.1-rc.2 上完成的；尚未在 Windows 真机跑过。Windows 上如果出现字体重叠或装饰错位，请把截图/分辨率发我，我可以按 Windows 字体度量再调一版。
+> 实测环境：Windows 11（10.0.26300，中文系统，代码页 936）· DSH Desktop Web（运行时 0.2.1-rc.2，Electron 44.7.0）· Chromium 154 · 同一台机器的 100% / 125% / 150% 三档缩放。渲染与度量通过 `tools/win-audit/` 里的 CDP 审计脚本完成（见文末「Windows 渲染审计」）。
+
+v0.4.1 只加了字体回退，**没有在 Windows 真机上跑过**。v0.7.0 补上了真机验收，并修掉了下面这些只有 Windows 才会暴露的问题。
+
+![windows hero](shots/windows/hero-1440x900.png)
+
+_Windows 11 · 1440×900 · 100% 缩放。_
+
+### 1. Windows 窗口顶部的原生标题栏条
+
+Windows 版 DSH 用 `titleBarStyle: "hidden"` + `titleBarOverlay`，宿主会在 `html` 上打 `data-windows-titlebar` 标记，并给整个 frame 加 `padding-top: var(--dsh-windows-titlebar-height)`（本机 40px）来给最小化/最大化/关闭让位。主题本身不碰这块，实测主题色（`--dsw-specific-sidebar-fill`）会自动铺满这条 40px 带，与侧边栏、会话区衔接正常，**无需额外处理**——但如果你换了 `--dsw-specific-sidebar-fill`，记得这条带是跟着它走的。
+
+![titlebar row](shots/windows/titlebar-row-1440x900.png)
+
+_Windows 桌面：顶部 40px 原生标题栏条（`data-windows-titlebar`）与侧边栏、会话区的衔接。_
+
+### 2. 1px 花丝线在 125% / 150% 下发虚
+
+Windows 最常见的缩放是 125%（笔记本）和 150%（1080p 屏）。1 CSS px 在这些缩放下落到 1.25 / 1.5 设备像素，Chromium 只能用抗锯齿去凑，结果就是铜色花丝比 macOS（2× 下 1px = 整整 2 设备像素）更暗、更糊。
+
+- 新增 `--admech-hairline`：客户端半按 `devicePixelRatio` 计算，100% → `1px`，125% → `0.8px`，150% → `0.667px`（都正好 1 设备像素），200% 及以上回到 `1px`；
+- 主题里 **45 处**装饰性边框 / 内嵌描边（`border*: 1px`、`inset 0 0 0 1px`、焦点环）全部改成 `var(--admech-hairline, 1px)`；
+- 移动窗口到另一块缩放不同的显示器时，`resize` 会重新计算，不用重启。
+
+![150%](shots/windows/display-150pct-1920x1080.png)
+
+_1920×1080 · 150% 缩放（CSS 视口 1280×720）。_
+
+实测：150% 下量同一列像素，边框亮带的过渡从「6 列渐变」收到「5 列、核心更亮」，视觉上是一条干净的线而不是一层雾。
+
+### 3. 小尺寸花角（文件卡 26px / 交付卡 20px）几乎看不见
+
+花角字形画在 48 单位的画布里，缩到 26px 时 `stroke-width: 1.15` 只剩 **0.62 CSS px**；macOS 2× 下还有 1.24 设备像素，Windows 100% 下只有 0.62 设备像素，等于一层鬼影。
+
+- 新增密度校正的第二套花角 `--admech-corner-sm-*`，笔画按 `max(1.15, 1.7 / dpr)` 生成；
+- 只给 26px / 20px 两处卡片框用，42px 输入框和 48px 对话框保持原笔画。
+
+![filigree](shots/windows/filigree-density.png)
+
+_左：v0.7.0（密度校正）；右：v0.6.3（原笔画）。同一页面、同一位置、4× 放大。_
+
+### 4. 滚动条宽度与宿主布局几何对不上
+
+宿主主题全局注入 `::-webkit-scrollbar { width: var(--dsh-scrollbar-width) }`（WebKit 下默认 5px，部分面板自行改成 8/9px），而输入框座（`composerSeat`）等布局是拿同一个变量算偏移的。主题原先硬写 `width: 8px`，在 Windows 上等于**每条滚动条都比宿主以为的宽 3px**，输入框右侧会顶出 3px。
+
+- 改成 `width: var(--dsh-scrollbar-width, 8px)`，跟着宿主走；缩略图配色保留。
+
+### 5. 只在 Windows 才付的合成成本
+
+- **顶栏 `backdrop-filter: blur(7px)`**：顶栏自己铺的是 92–96% 不透明的渐变，模糊根本看不见，但 Windows 的 D3D 合成路径每一帧都要重采样下面的滚动内容。Windows 下直接关掉（macOS 保留）。
+- **启动页退场 `transform: scale(1.012)`**：整屏缩放会强制重采样整张启动页位图（花窗、文字全部），125%/150% 下肉眼可见发软。Windows 下退场只用 opacity。
+
+  ![splash](shots/windows/splash-1440x900.png)
+- **MutationObserver 每帧重扫全文档**：宿主在虚拟滚动时写内联 `transform`、流式输出时不停换节点，原实现每个动画帧都会把 `tagNodes()` + `replaceAllIcons()`（5 轮全文档 `querySelectorAll`）跑一遍。现在 120ms 节流、忽略 `style` 变更、启动页盖住界面时观察器完全待机，启动页移除后再补一次扫描。
+
+### 6. Windows「动画效果：关闭」→ 启动页直接不出现
+
+`prefers-reduced-motion: reduce` 之前只停掉动画，但点火页仍会整屏盖住 0.65–3.6 秒。现在减少动态效果时**根本不挂载启动页**，直接进界面。
+
+### 7. Windows 高对比度主题（Contrast Themes）
+
+高对比度会强制系统色用于文字和边框，但不会清掉主题的渐变背景、data-URI 纹章和 icon mask，结果是系统色文字压在黑色花窗上、图标变空白块。新增 `@media (forced-colors: active)` 块：去掉装饰层与阴影，还原原生图标，保留可读的边框。
+
+![contrast](shots/windows/contrast-themes.png)
+
+### 8. SVG 花纹文字落到 Times New Roman
+
+花纹里的 9 处 `<text>` 写的是 `font-family='Palatino, serif'`。Windows 只装了 **Palatino Linotype**，没有 `Palatino`，也没有字体替换映射，于是全部退到 Times New Roman——"FORGE-CATHEDRAL"、"EX FERRO · EX IGNE"、"IN TENEBRIS..." 的字宽和字面都变了。已改成 `Palatino Linotype, Palatino, Georgia, serif`。
+
+### 9. 其余小修
+
+- **字体栈**：`--admech-serif` 现在的顺序是 `Noto Serif CJK SC → Noto Serif SC → Source Han Serif SC → Songti SC → Palatino Linotype → Palatino → Georgia → SimSun → NSimSun → 宋体 → 新宋体 → Microsoft YaHei → 微软雅黑 → serif`。中文 Windows 同时注册「SimSun」和「宋体」两个族名，两个都写上更稳；`--admech-mono` 补了 `Cascadia Code`。
+- **启动页标题 `font-weight: 500`** 改成 `400`：两套字体栈里都没有 500 这个字面，写 500 只会让浏览器去合成。
+- **标题旁的小标签（`FORGE-SANCTUM · MARS`）** 加 `white-space: nowrap`：它是宿主 `flex-wrap` 标题行的第三个 flex 项，Windows 的拉丁字体更宽，原先可能被折成两行。
+- **启动页徽记** 改用 256px 源图（92px × 150% = 138 设备像素，原先的 128px 源会被放大）；24px 图标走 mask，继续用 64px 源，不增大包体。
+- **短视口下的对话框徽章**：1080p × 150% 的 CSS 视口只有 720px 高，对话框按 24px 上边距居中时 84px 徽章会被裁掉 14px。`@media (max-height: 760px)` 缩到 64px。
+- **停用插件后残留深色 `color-scheme`**：cleanup 现在会还原 `color-scheme` 并摘掉 `data-ds-dark-theme`，否则原生下拉、滚动条、表单控件会一直是深色。
+
+### 实测结论
+
+| 场景 | 结果 |
+| --- | --- |
+| 1440×900 @100% | 无文字裁切、无非预期遮挡，图标替换 25/30（其余是装饰性/非插件图标） |
+| 1440×900 @125% / 1920×1080 @150% | 同上；花丝线为整设备像素 |
+| Windows Snap 半屏 1100×760、三分之一 900×720、窄窗 760×640 | 无裁切、无重叠；≤900px 时会话区花窗按设计隐藏 |
+| Windows 桌面标题栏条（模拟 40px + `data-windows-titlebar`） | 顶部条与主题色衔接正常 |
+| 高对比度（forced-colors） | 装饰层关闭、原生图标恢复、文字可读 |
+| 减少动态效果 | 启动页不出现，直接进界面 |
+
+**已知差异 / 未覆盖**：
+
+- 如果你的 Windows 没装任何衬线中文字体（英文版 Windows 未装「简体中文补充字体」，也没有 Noto Serif SC），中文会落到 **Microsoft YaHei（黑体）**，拉丁文仍是 Palatino Linotype——这是字体可用性问题，不是布局问题；装上 `宋体`/`SimSun` 或 Noto Serif SC 即回到设计意图。
+- 文字用的是宿主字号，7–9px 的装饰性拉丁小字在 100% 下比 macOS 2× 稍粗，这是 ClearType 与灰度抗锯齿的差别。
+- 本次验收用的是同一台机器的无头 Chromium + 模拟 `data-windows-titlebar`，**没有直接截取 Electron 原生标题栏**（最小化/最大化/关闭由系统绘制，位于网页图层之上）；标题栏按钮颜色由宿主的 `titleBarOverlay` 从 `--dsw-specific-sidebar-fill` / `--dsw-alias-label-primary` 同步，主题只负责这两个 token。
+- macOS 行为保持不变：所有平台专属规则都挂在 `[data-admech-os="win"]` 或 `@media (forced-colors: active)` / `(max-height: 760px)` 下。
+
+### Windows 安装（实测）
+
+> 以下步骤在全新 `DSH_HOME` 上逐条验证通过。`dsh` 命令位于安装目录 `resources\runtime\cli\bin\dsh.cmd`，建议加入 PATH 或用完整路径。
+
+**推荐：下载 zip → 本地安装（不需要 git，不需要访问 pnpm registry）**
+
+```powershell
+Invoke-WebRequest -Uri 'https://github.com/RichardDou0607/dsh-theme-admech/archive/refs/heads/main.zip' `
+  -OutFile "$env:TEMP\dsh-theme-admech-main.zip"
+Expand-Archive -LiteralPath "$env:TEMP\dsh-theme-admech-main.zip" -DestinationPath 'C:\dsh-theme-admech' -Force
+
+dsh --profile admech --from-default-profile web --dump-config
+dsh plugin --profile admech add 'file:C:\dsh-theme-admech\dsh-theme-admech-main'
+
+dsh --profile admech --port 0 --no-open
+```
+
+打开打印出来的 `http://127.0.0.1:<端口>/?token=…` 即完成。确认 profile 里出现主题行：
+
+```powershell
+dsh --profile admech --dump-config
+# - id: theme-admech
+#   name: dsh-theme-admech
+```
+
+**中文路径可用（实测）。** 插件放在 `D:\桌面\插件工厂\repo` 这类路径，安装后记录为 `"file:D:/桌面/插件工厂/repo"`（正确 UTF-8），启动与下发均正常。若在 GBK(936) 控制台直接 `Get-Content package.json` 看到 `妗岄潰/鎻掽欢宸ュ巶` 之类，那是**控制台显示**问题，不是写入错误——用 `-Encoding UTF8` 或编辑器复核。
+
+**不要默认依赖 `dsh plugin add 'github:…'`。** 在「git 代理失效 / 证书链不全」的 Windows 机器上这条命令会直接失败（实测原文）：
+
+```
+[ERR_PNPM_GIT_RESOLVE_FAILED] Failed to resolve git dependency "github:RichardDou0607/dsh-theme-admech":
+  git ls-remote failed: fatal: unable to access 'https://github.com/RichardDou0607/dsh-theme-admech.git/':
+  Failed to connect to 127.0.0.1 port 7897 after 2079 ms: Couldn't connect to server
+```
+
+绕开代理后还可能遇到：
+
+```
+fatal: unable to access 'https://github.com/RichardDou0607/dsh-theme-admech.git/':
+  SSL certificate problem: unable to get local issuer certificate
+```
+
+确实要用 git 规格时，可在同一条命令里临时绕过（不改全局配置，实测成功）：
+
+```powershell
+$env:no_proxy = '*'; $env:NO_PROXY = '*'
+$env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'http.sslVerify'; $env:GIT_CONFIG_VALUE_0 = 'false'
+dsh plugin --profile admech add 'github:RichardDou0607/dsh-theme-admech'
+```
+
+> `http.sslVerify=false` 会跳过 TLS 校验，仅建议在临时/受控环境使用；长期方案是修好代理与系统 CA，或直接用 zip 流程。
+
+**`file:` 安装是硬链接。** 同一磁盘卷下，profile 里的 `node_modules\dsh-theme-admech` 与源目录是硬链接：重建源码会直接改到已安装文件，但 DSH 只在启动时读取客户端 bundle，**必须重启 profile 进程**才生效。想要独立快照，就把插件放到另一个盘再装。
+
+## Windows 渲染审计（可复现）
+
+仓库自带 `tools/win-audit/`，用无第三方依赖的 CDP 脚本驱动本机 Chrome，抓图并量化：
+
+```powershell
+# 1) 启动一个临时 profile（不影响日常 profile）
+$env:DSH_HOME = 'D:\dsh-audit-home'
+dsh --profile admech --from-default-profile web --dump-config
+dsh plugin --profile admech add 'file:<插件目录>'
+dsh --profile admech --port 54991 --no-open      # 记下打印出的 token URL
+
+# 2) 抓图 + 度量（Node 22+，使用内置 WebSocket，无需 npm install）
+node tools/win-audit/run-audit.mjs --url "http://127.0.0.1:54991/?token=..." --out shots/win --scenario desktop,desktop-125,win-1080p-150 --splash
+node tools/win-audit/run-audit.mjs --url "..." --out shots/win --scenario desktop --desktop-win   # 模拟 Windows 标题栏条
+node tools/win-audit/run-audit.mjs --url "..." --out shots/win --scenario desktop --media "forced-colors=active"
+node tools/win-audit/run-audit.mjs --url "..." --out shots/win --scenario desktop --media "prefers-reduced-motion=reduce"
+node tools/win-audit/run-audit.mjs --url "..." --out shots/win --scenario desktop --specimen     # 卡片花纹 A/B
+```
+
+每个场景输出 PNG + 同名 JSON，JSON 里包含：实际生效的字体栈、区域内字号/行高/字距、文字裁切检测（`scrollWidth/Height` 溢出）、交互元素重叠检测、滚动容器宽度、固定装饰层坐标、`data-admech-os` / `--admech-hairline` / `--dsh-scrollbar-width` 的取值。
