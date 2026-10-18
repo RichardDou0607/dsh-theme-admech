@@ -752,14 +752,14 @@ window.__ModuleLoader__.load({
 			wrap.className = "admech-splash" + (reduced ? " is-reduced" : "");
 			wrap.setAttribute("data-admech-splash", "true");
 			wrap.setAttribute("role", "status");
-			wrap.setAttribute("aria-label", "铸炉圣殿启动");
+			wrap.setAttribute("aria-label", "铸造圣殿启动");
 			wrap.innerHTML =
 				'<div class="admech-splash-atmo">' + emberHtml + '<div class="admech-splash-ray"></div><div class="admech-splash-scan"></div></div>'
 				+ SPLASH_FRAME
 				+ '<div class="admech-splash-content">'
 				+ '<div class="kicker">DEEPSEEK HARNESS // NOOSPHERE LINK</div>'
 				+ '<div class="sigil"><img src="' + EMBLEM_URI + '" alt=""></div>'
-				+ '<h1>铸炉圣殿</h1>'
+				+ '<h1>铸造圣殿</h1>'
 				+ '<div class="sub">FORGE-CATHEDRAL</div>'
 				+ '<div class="latin">MACHINA · MARS · LUX AETERNA</div>'
 				+ '<ul class="log">' + logHtml + '</ul>'

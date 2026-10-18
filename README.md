@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.2）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.3）
 
-> **状态：v0.5.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.5.3 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -61,7 +61,7 @@
 
 
 
-## v0.5.0：启动页 · 铸炉圣殿点火序列
+## v0.5.0：启动页 · 铸造圣殿点火序列（标题在 v0.5.3 改为“铸造圣殿”）
 
 ![splash desktop](shots/splash-desktop.png)
 
