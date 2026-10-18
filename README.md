@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.4）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.4.1）
 
-> **状态：v0.4 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.4.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -38,7 +38,7 @@
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-190635-oz8e-audit/report.json；
+- 报告：.layout-guard/runs/20261018-192206-1t7v-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 
@@ -112,3 +112,18 @@
 - **非商业使用不等于没有版权/商标风险**。公开分发前请确认素材授权；商业使用前建议替换掉一切 GW 风格名称/符号，并咨询知识产权律师。
 
 
+
+
+## Windows 适配状况（v0.4.1）
+
+- **代码层面**：主题是纯 Web client 插件，没有 macOS 专用 API；Windows 版 DSH Desktop 使用同一套 Chromium/Node Web UI，理论兼容。
+- **字体**：v0.4.1 已加入 Windows 回退：Palatino Linotype / SimSun / NSimSun / Microsoft YaHei / Cascadia Mono / Consolas。即使没有 Noto Serif CJK 或 Songti SC，也会落到 Windows 自带字体。
+- **安装**：
+  - 推荐在「插件」页输入 Git 地址安装；Windows 需要系统已安装 **Git for Windows**（pnpm 通过 git 拉取 github: 依赖）；
+  - 如果没有 Git，或 Git 安装失败：下载 GitHub 仓库 ZIP → 解压 → 在插件页选择本地目录安装；
+  - Windows 路径示例：C:\Users\<你的用户名>\Downloads\dsh-theme-admech-main
+- **已知差异**：
+  - Windows 125% / 150% 缩放、以及缺少 Palatino/Noto 时，字体行高和字距可能与 macOS 截图略有差异；
+  - 背景 / 徽记 / 装饰均为内嵌 data URI，不依赖 macOS 路径；
+  - 构建脚本使用 Node path API，可在 Windows 下运行 node src/build-client.mjs。
+- **未验证**：当前实际渲染与 layout_audit 是在 macOS 的 DSH 0.2.1-rc.2 上完成的；尚未在 Windows 真机跑过。Windows 上如果出现字体重叠或装饰错位，请把截图/分辨率发我，我可以按 Windows 字体度量再调一版。

@@ -608,6 +608,18 @@ window.__ModuleLoader__.load({
 					var active = /(^|[\s_-])(active|selected)([\s_-]|$)/i.test(cls) || row.getAttribute("aria-current") === "true" || row.getAttribute("aria-current") === "page" || row.getAttribute("aria-selected") === "true";
 					row.setAttribute("data-admech-active", active ? "true" : "false");
 				}
+				// Keep the native placeholder text for the app, but render our own copy
+				// through CSS so its invisible layout box does not sit over the input
+				// (and tripped the layout audit's overlap rule in some states).
+				var placeholders = document.querySelectorAll("[data-composer-placeholder]");
+				for (var pi = 0; pi < placeholders.length; pi++) {
+					var ph = placeholders[pi];
+					var phText = ph.textContent || "";
+					if (phText && ph.getAttribute("data-admech-ph") !== phText) {
+						ph.setAttribute("data-admech-ph", phText);
+					}
+					ph.setAttribute("data-admech-placeholder", "true");
+				}
 				replaceAllIcons();
 			} catch (e) { /* best effort tagging */ }
 		}

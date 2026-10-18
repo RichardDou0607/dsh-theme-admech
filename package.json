@@ -1,7 +1,7 @@
 {
   "name": "dsh-theme-admech",
-  "version": "0.4.0",
-  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.4: user-provided gear-skull standard (recolored + scaled), faceted gothic portal backdrop, angular shrine crest above the composer, cathedral-framed chat, provided emblem replacing the hero whale. 机械神教 · 铸炉圣殿 v0.4。",
+  "version": "0.4.1",
+  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.4.1: user-provided gear-skull standard (recolored + scaled), faceted gothic portal backdrop, angular shrine crest above the composer, cathedral-framed chat, provided emblem replacing the hero whale. 机械神教 · 铸炉圣殿 v0.4。 Windows font fallbacks added; not yet verified on a Windows machine.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

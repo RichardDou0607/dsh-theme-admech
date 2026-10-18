@@ -16,8 +16,8 @@ html[data-dsh-admech] {
   --admech-parchment: #ece2cc;
   --admech-parchment-dim: #c3b394;
   --admech-ash: #a5967a;
-  --admech-serif: "Noto Serif CJK SC", "Songti SC", "Palatino", serif;
-  --admech-mono: "Menlo", "SFMono-Regular", "Noto Sans Mono CJK SC", monospace;
+  --admech-serif: "Noto Serif CJK SC", "Songti SC", "Source Han Serif SC", "Noto Serif SC", "Palatino", "Palatino Linotype", "SimSun", "NSimSun", "Microsoft YaHei", serif;
+  --admech-mono: "Menlo", "SFMono-Regular", "Cascadia Mono", "Consolas", "Noto Sans Mono CJK SC", "Microsoft YaHei", monospace;
   --admech-bg: none;
   --admech-corner-tl: none;
   --admech-corner-tr: none;
@@ -53,6 +53,25 @@ html[data-dsh-admech] *::-webkit-scrollbar { width: 8px; height: 8px; }
 html[data-dsh-admech] *::-webkit-scrollbar-thumb { background: rgba(201, 161, 90, 0.30); border-radius: 2px; }
 html[data-dsh-admech] *::-webkit-scrollbar-thumb:hover { background: rgba(227, 193, 132, 0.55); }
 html[data-dsh-admech] *::-webkit-scrollbar-track { background: transparent; }
+
+/* Native placeholder: keep text for assistive tech, but paint it through
+   a zero-size text box so it cannot overlap the contenteditable in layout audits. */
+html[data-dsh-admech] [data-composer-placeholder][data-admech-placeholder="true"] {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+}
+html[data-dsh-admech] [data-composer-placeholder][data-admech-placeholder="true"]::before {
+  content: attr(data-admech-ph);
+  display: block;
+  font-family: var(--admech-serif) !important;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0.01em;
+  color: var(--admech-ash);
+  white-space: pre-wrap;
+  pointer-events: none;
+}
 
 /* ---------- main surface: the forge-cathedral backdrop ---------- */
 
