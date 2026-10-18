@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.0）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.1）
 
-> **状态：v0.6.0 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.6.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -192,11 +192,39 @@
 - 真实发送消息后 composer 仍存在（cardCount=1 / inputCount=1），控制台 0 errors；
 - layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-195243-qhye-audit/report.json。
 
+
+
+## v0.6.1：文件卡图标空白修复 + 展开“思考”图标
+
+### 文件卡图标空白
+
+v0.6.0 给文件卡图标的 SVG 加了较强的 sepia / brightness filter，把 FileTypeIcon 自身的白色底板和彩色字形一起洗白，最终出现“白色空方块”。
+
+v0.6.1 移除这组洗白滤镜，只保留轻微阴影；图标盒仍保留黄铜边框与暗色衬底。文件类型图标恢复原本的颜色与字形。
+
+### 展开后的“思考”图标
+
+展开 process 组后，ReasoningRow 使用的是 DSH 原生 IconThinkOutlineRegular（原子/轨道图标），不属于 ToolRow，所以上次映射没有覆盖到。
+
+v0.6.1 增加：
+
+- 对 [data-variant="think"] 的 ReasoningRow，把 leading SVG 映射为 process_think（机魂之眼）；
+- 思考行的标题/摘要同步使用衬线字体；
+- ToolRow 与 process 组头部图标映射保持不变。
+
+验证：
+
+- 文件卡合成 DOM：FileTypeIcon 字形可见，不再空白；
+- 展开思考行：data-admech-icon=process_think；
+- 控制台 0 errors；
+- layout_audit PASS：1440×900 + 390×844；
+- 报告：.layout-guard/runs/20261018-195612-x4mu-audit/report.json。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-195243-qhye-audit/report.json；
+- 报告：.layout-guard/runs/20261018-195612-x4mu-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

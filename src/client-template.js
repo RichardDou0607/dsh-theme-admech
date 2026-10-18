@@ -590,6 +590,13 @@ window.__ModuleLoader__.load({
 				if (stepSvg) applyIcon(stepSvg, stepKey);
 			}
 
+			// Expanded process detail: reasoning disclosure rows ("思考").
+			var thinkRows = document.querySelectorAll("[data-variant=\"think\"]");
+			for (var th = 0; th < thinkRows.length; th++) {
+				var thinkLeading = thinkRows[th].querySelector("[class*=\"leading\"] svg");
+				if (thinkLeading) applyIcon(thinkLeading, "process_think");
+			}
+
 			// Expanded process detail: ToolRow leading icons.
 			var toolRows = document.querySelectorAll("[data-tool]");
 			for (var tr = 0; tr < toolRows.length; tr++) {
