@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.4.2）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.5.0）
 
-> **状态：v0.4.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.5.0 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -59,11 +59,36 @@
 
 ![disabled native](shots/disabled-native.png)
 
+
+
+## v0.5.0：启动页 · 铸炉圣殿点火序列
+
+![splash desktop](shots/splash-desktop.png)
+
+- 在 DSH 页面加载、主题插件激活后，显示全屏启动覆盖层；约 3 秒后自动淡出；
+- 中央是尖拱/六边哥特框、侧龛、山花、底部 arcade、你提供的齿轮-骷髅、祷文铭刻；
+- 逐行点火日志：NOOSPHERE LINK / COGITATOR CORE / FORGE SANCTUM / LITANY OF ACTIVATION；
+- 黄铜进度轨 + 百分比、火星余烬、光柱、扫描线、轻微闪烁；
+- 点击任意位置或按 Enter / Esc / Space 可跳过；
+- 系统开启 prefers-reduced-motion 时自动缩短动画；
+- 自动化截图 / layout audit 可通过 URL hash 跳过启动页：#admech-splash=0；
+- 这是客户端启动覆盖层，不是 macOS/Windows 原生启动画面；不会缩短应用真实启动时间，只是在页面可用后播放约 3 秒的点火序列。
+
+![splash mobile](shots/splash-mobile.png)
+
+验证：
+
+- 桌面 1440×900 / 移动 390×844 截图通过；
+- 3 秒后自动移除，底层 UI 正常；
+- 点击跳过验证通过；
+- 跳过启动页后 layout_audit PASS：报告 .layout-guard/runs/20261018-193502-d7yl-audit/report.json；
+- 浏览器控制台无错误；启动页不依赖 macOS 专用 API。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-192646-l3en-audit/report.json；
+- 报告：.layout-guard/runs/20261018-193502-d7yl-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

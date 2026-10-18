@@ -690,6 +690,150 @@ window.__ModuleLoader__.load({
 		}
 
 		/* ------------------------------------------------------------------ */
+		/* Startup / splash: Forge-Cathedral ignition sequence                  */
+		/* ------------------------------------------------------------------ */
+
+		var SPLASH_SHOWN = false;
+		var SPLASH_CLEANUP = null;
+
+		var SPLASH_FRAME = [
+			'<svg class="admech-splash-frameart" viewBox="0 0 560 760" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
+			'<defs><linearGradient id="admechSplashBrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d49a"/><stop offset=".45" stop-color="#c9a15a"/><stop offset="1" stop-color="#5f431d"/></linearGradient></defs>',
+			'<path d="M280 6 L548 150 V612 L280 754 L12 612 V150 Z" fill="rgba(4,2,1,.96)" stroke="url(#admechSplashBrass)" stroke-width="2.2"/>',
+			'<path d="M280 28 L522 164 V602 L280 728 L38 602 V164 Z" stroke="#e3c184" stroke-opacity=".42" stroke-width="1"/>',
+			'<path d="M280 52 L492 178 V592 L280 700 L68 592 V178 Z" stroke="#c9a15a" stroke-opacity=".30" stroke-width="1"/>',
+			'<path d="M280 6 V-8 M268 4 L280 -10 L292 4 M12 150 L0 108 M548 150 L560 108" stroke="#e3c184" stroke-opacity=".55" stroke-width="1.4"/>',
+			'<path d="M12 150 V612 M548 150 V612 M38 164 V602 M522 164 V602" stroke="#c9a15a" stroke-opacity=".22" stroke-width="1"/>',
+			'<path d="M38 164 L18 250 L38 336 M522 164 L542 250 L522 336" stroke="#c9a15a" stroke-opacity=".45" stroke-width="1.2"/>',
+			'<path d="M12 612 L0 650 M548 612 L560 650" stroke="#c9a15a" stroke-opacity=".35"/>',
+			'<path d="M170 120 H390 M150 140 H410 M130 160 H430" stroke="#c9a15a" stroke-opacity=".20"/>',
+			'<path d="M280 88 l10 10 -10 10 -10 -10Z M190 170 l7 7 -7 7 -7 -7Z M370 170 l7 7 -7 7 -7 -7Z" stroke="#e3c184" stroke-opacity=".55" fill="none"/>',
+			'<text x="280" y="116" text-anchor="middle" font-family="Palatino, serif" font-size="11" letter-spacing="5" fill="#c9a15a" opacity=".55">FORGE-CATHEDRAL</text>',
+			'<text x="280" y="716" text-anchor="middle" font-family="Palatino, serif" font-size="9" letter-spacing="4" fill="#c9a15a" opacity=".45">MACHINA · MARS · LUX AETERNA</text>',
+			'<path d="M80 680 H480 M110 696 H450" stroke="#c9a15a" stroke-opacity=".22"/>',
+			'<g class="admech-splash-side">',
+			'<path d="M88 250 V620 M472 250 V620" stroke="#c9a15a" stroke-opacity=".30"/>',
+			'<path d="M80 250 H96 M464 250 H480 M80 620 H96 M464 620 H480" stroke="#e3c184" stroke-opacity=".35"/>',
+			'<path d="M92 300 L108 282 L124 300 V390 L92 390 Z M92 410 L108 392 L124 410 V500 L92 500 Z M92 520 L108 502 L124 520 V600 L92 600 Z" stroke="#c9a15a" stroke-opacity=".40" fill="rgba(8,5,3,.35)"/>',
+			'<path d="M436 300 L452 282 L468 300 V390 L436 390 Z M436 410 L452 392 L468 410 V500 L436 500 Z M436 520 L452 502 L468 520 V600 L436 600 Z" stroke="#c9a15a" stroke-opacity=".40" fill="rgba(8,5,3,.35)"/>',
+			'<path d="M100 360 V440 M460 360 V440 M100 470 V560 M460 470 V560" stroke="#e3c184" stroke-opacity=".18"/>',
+			'</g>',
+			'<g class="admech-splash-gable" stroke="#c9a15a" fill="none" opacity=".42">',
+			'<path d="M160 250 L280 132 L400 250 M190 250 L280 158 L370 250 M220 250 L280 190 L340 250"/>',
+			'<path d="M196 260 H364 M214 274 H346 M232 288 H328" stroke-opacity=".6"/>',
+			'<path d="M280 158 l8 8 -8 8 -8 -8Z M196 260 l6 6 -6 6 -6 -6Z M364 260 l6 6 -6 6 -6 -6Z" stroke="#e3c184" stroke-opacity=".6"/>',
+			'</g>',
+			'<g class="admech-splash-arcade" stroke="#c9a15a" fill="none" opacity=".30">',
+			'<path d="M140 700 V672 Q156 650 172 672 V700 M186 700 V672 Q202 650 218 672 V700 M232 700 V672 Q248 650 264 672 V700 M278 700 V672 Q294 650 310 672 V700 M324 700 V672 Q340 650 356 672 V700 M370 700 V672 Q386 650 402 672 V700 M416 700 V672 Q432 650 448 672 V700"/>',
+			'</g>',
+			'<path d="M124 120 l7 7 -7 7 -7 -7Z M436 120 l7 7 -7 7 -7 -7Z M92 220 l6 6 -6 6 -6 -6Z M468 220 l6 6 -6 6 -6 -6Z" stroke="#e3c184" stroke-opacity=".45" fill="none"/>',
+			'</svg>'
+		].join("");
+
+		function showSplash() {
+			if (SPLASH_SHOWN) return;
+			SPLASH_SHOWN = true;
+			try {
+				var splashFlag = String(location.search || "") + " " + String(location.hash || "");
+				if (splashFlag.indexOf("admech-splash=0") !== -1) return;
+			} catch (e) { /* ignore */ }
+			var reduced = false;
+			try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
+
+			var logs = [
+				"NOOSPHERE LINK ................ ESTABLISHED",
+				"COGITATOR CORE ................ ONLINE",
+				"FORGE SANCTUM ................. IGNITED",
+				"LITANY OF ACTIVATION .......... RECITED"
+			];
+			var logHtml = "";
+			for (var li = 0; li < logs.length; li++) {
+				logHtml += '<li style="--i:' + li + '"><span class="dot"></span><span>' + logs[li] + '</span></li>';
+			}
+			var emberHtml = "";
+			for (var ei = 0; ei < 16; ei++) {
+				var left = 8 + ((ei * 37) % 84);
+				var dur = 3.2 + ((ei * 13) % 37) / 10;
+				var delay = ((ei * 29) % 40) / 10;
+				var size = 1 + ((ei * 7) % 3);
+				emberHtml += '<i style="left:' + left + '%;--d:' + dur + 's;--delay:-' + delay + 's;--s:' + size + 'px"></i>';
+			}
+
+			var wrap = document.createElement("div");
+			wrap.className = "admech-splash" + (reduced ? " is-reduced" : "");
+			wrap.setAttribute("data-admech-splash", "true");
+			wrap.setAttribute("role", "status");
+			wrap.setAttribute("aria-label", "铸炉圣殿启动");
+			wrap.innerHTML =
+				'<div class="admech-splash-atmo">' + emberHtml + '<div class="admech-splash-ray"></div><div class="admech-splash-scan"></div></div>'
+				+ SPLASH_FRAME
+				+ '<div class="admech-splash-content">'
+				+ '<div class="kicker">DEEPSEEK HARNESS // NOOSPHERE LINK</div>'
+				+ '<div class="sigil"><img src="' + EMBLEM_URI + '" alt=""></div>'
+				+ '<h1>铸炉圣殿</h1>'
+				+ '<div class="sub">FORGE-CATHEDRAL</div>'
+				+ '<div class="latin">MACHINA · MARS · LUX AETERNA</div>'
+				+ '<ul class="log">' + logHtml + '</ul>'
+				+ '<div class="rail"><i></i></div>'
+				+ '<div class="status"><span>IGNITING FORGE</span><span class="pct">000%</span></div>'
+				+ '</div>'
+				+ '<div class="admech-splash-footer"><div>OMNISSIAH · DEUS MACHINA · EX FERRO · EX IGNE · IN TENEBRIS LUX AETERNA</div><div class="tiny">UNOFFICIAL FAN WORK · FORGE-CATHEDRAL v0.5.0</div></div>';
+			document.body.appendChild(wrap);
+
+			var fill = wrap.querySelector(".rail i");
+			var pctEl = wrap.querySelector(".pct");
+			var start = (window.performance && performance.now) ? performance.now() : Date.now();
+			var DUR = reduced ? 300 : 2400;
+			var raf = null;
+			var removeTimer = null;
+			var outTimer = null;
+			var closed = false;
+
+			function tick(now) {
+				if (closed) return;
+				var elapsed = now - start;
+				var pct = Math.max(0, Math.min(100, (elapsed / DUR) * 100));
+				if (fill) fill.style.width = pct + "%";
+				if (pctEl) pctEl.textContent = ("00" + Math.floor(pct)).slice(-3) + "%";
+				if (pct < 100) raf = window.requestAnimationFrame(tick);
+			}
+
+			function remove() {
+				if (raf) { try { cancelAnimationFrame(raf); } catch (e) { /* ignore */ } raf = null; }
+				if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+				if (outTimer) { clearTimeout(outTimer); outTimer = null; }
+				try {
+					document.removeEventListener("keydown", onKey);
+					if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+				} catch (e) { /* ignore */ }
+				SPLASH_CLEANUP = null;
+			}
+
+			function dismiss() {
+				if (closed) return;
+				closed = true;
+				wrap.classList.add("is-out");
+				try { if (fill) fill.style.width = "100%"; if (pctEl) pctEl.textContent = "100%"; } catch (e) { /* ignore */ }
+				outTimer = setTimeout(remove, reduced ? 140 : 560);
+			}
+
+			function onKey(e) {
+				if (e.key === "Escape" || e.key === "Enter" || e.key === " ") dismiss();
+			}
+
+			wrap.addEventListener("click", dismiss);
+			document.addEventListener("keydown", onKey);
+			if (reduced) {
+				removeTimer = setTimeout(dismiss, 650);
+			} else {
+				raf = window.requestAnimationFrame(tick);
+				removeTimer = setTimeout(dismiss, 3000);
+			}
+
+			SPLASH_CLEANUP = remove;
+		}
+
+		/* ------------------------------------------------------------------ */
 		/* Apply                                                                */
 		/* ------------------------------------------------------------------ */
 
@@ -754,8 +898,10 @@ window.__ModuleLoader__.load({
 				forceDark();
 				tagNodes();
 				replaceAllIcons();
+				showSplash();
 
 				return function cleanup() {
+					if (SPLASH_CLEANUP) { try { SPLASH_CLEANUP(); } catch (e) { /* ignore */ } SPLASH_CLEANUP = null; }
 					for (var i = 0; i < disposers.length; i++) {
 						try { disposers[i](); } catch (e) { /* ignore */ }
 					}
