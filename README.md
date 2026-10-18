@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.4.1）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.4.2）
 
-> **状态：v0.4.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.4.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -34,11 +34,36 @@
 - 会话区四周使用**尖顶式 conversation crest**（不再是纯弧），两侧束柱轨、底部 arcade 饰带与纵向祷文；
 - 聊天内容保持可读，装饰都带 pointer-events: none。
 
+
+
+## v0.4.2：关闭插件后图标恢复修复
+
+**问题**：停用插件时，cleanup 只移除了主题 CSS 和根节点属性，没有恢复被替换的 SVG 图标（viewBox / fill / stroke / width / height / innerHTML），也没有恢复被替换成内联 SVG 的 img 元素；因此关闭插件后页面仍显示 Forge-Cathedral 图标，需要刷新才恢复。
+
+**修复**：
+
+- 在第一次替换某个 SVG 之前，记录它的全部原始 attributes 和 innerHTML（WeakMap + 记录数组）；
+- cleanup 时逐个恢复原始 attributes / innerHTML；
+- 对插件页里被替换的 img 元素记录父节点/兄弟节点，cleanup 时移除替代 SVG 并插回原 img；
+- 清理所有 data-admech / data-admech-icon / data-admech-brand / data-admech-hero-mark / data-admech-placeholder 属性；
+- 重新启用时重新记录并重新替换。
+
+**验证**（真实 DSH 0.2.1-rc.2，隔离 profile）：
+
+- 启用状态：28 个图标被替换；
+- 连续停用两次后：svg[data-admech-icon] = 0，[data-admech-glyph] = 0，data-admech 属性 = 0；
+- 品牌图标恢复为原生 DeepSeek 鲸鱼轮廓（viewBox 23.16 x 17.04），插件卡片恢复原生图标；
+- 重新启用后：28 个图标再次替换，主题恢复；
+- 停用状态截图：shots/disabled-native.png；
+- 启用状态 layout_audit PASS：1440×900 + 390×844，报告 .layout-guard/runs/20261018-192646-l3en-audit/report.json。
+
+![disabled native](shots/disabled-native.png)
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-192206-1t7v-audit/report.json；
+- 报告：.layout-guard/runs/20261018-192646-l3en-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 
