@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.1）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.6.2）
 
-> **状态：v0.6.1 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
+> **状态：v0.6.2 已实现，真实 DSH 0.2.1-rc.2 渲染与 layout_audit 验收通过。**
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
@@ -220,11 +220,30 @@ v0.6.1 增加：
 - layout_audit PASS：1440×900 + 390×844；
 - 报告：.layout-guard/runs/20261018-195612-x4mu-audit/report.json。
 
+
+
+## v0.6.2：账户 / 查询用量 / 充值 的兼容性排查
+
+隔离环境检查结果：
+
+- 账号菜单可以正常打开；
+- 菜单项的 pointer-events 是 auto，没有被主题装饰层遮挡；
+- 点击“登录”时菜单项 click 事件正常触发（defaultPrevented=false），控制台无错误；
+- 查询用量 / 充值在 Desktop 上通过 nativePlatform 打开 DSH 的 WebContentsView（DSH 宿主页面），不在主题 DOM/CSS 的范围内，主题无法拦截该页面的按钮。
+
+v0.6.2 增加的防御性处理：
+
+- 启动动画遇到 account / platform / billing / top-up / usage 等路径时直接跳过；
+- 点击账号菜单中的用量、充值等操作时，如果启动动画仍存在，立即将其移除；
+- 对菜单、对话框、账号区域的 a/button 显式设置 pointer-events: auto 与 z-index，避免装饰层继承/覆盖点击区域。
+
+如果你的环境里仍打不开，请提供“点击后具体表现”（无反应 / 空白原生页 / 报错）以及 DevTools Console 错误；这通常需要区分是账号状态 links 缺失、WebContentsView 宿主问题，还是 DSH 版本问题。
+
 ## 验证
 
 - 隔离 DSH Home 的 **DSH 0.2.1-rc.2** profile 安装并启用；
 - layout_audit **PASS**：1440×900 + 390×844，**0 errors**；
-- 报告：.layout-guard/runs/20261018-195612-x4mu-audit/report.json；
+- 报告：.layout-guard/runs/20261018-200126-dxf4-audit/report.json；
 - 控制台无插件报错；
 - 图标替换：hero 页 24/33 个可见 SVG、插件页 28/35 个。
 

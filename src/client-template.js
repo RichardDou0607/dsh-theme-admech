@@ -792,6 +792,10 @@ window.__ModuleLoader__.load({
 			try {
 				var splashFlag = String(location.search || "") + " " + String(location.hash || "");
 				if (splashFlag.indexOf("admech-splash=0") !== -1) return;
+				// The account/Platform WebContentsView is a separate native surface.
+				// Never let the ignition splash sit over it.
+				var splashPath = String(location.pathname || "") + " " + splashFlag;
+				if (/(?:platform|account|billing|top-?up|usage|checkout|pay)/i.test(splashPath)) return;
 			} catch (e) { /* ignore */ }
 			var reduced = false;
 			try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
@@ -860,6 +864,7 @@ window.__ModuleLoader__.load({
 				if (outTimer) { clearTimeout(outTimer); outTimer = null; }
 				try {
 					document.removeEventListener("keydown", onKey);
+					document.removeEventListener("click", onAccountAction, true);
 					if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
 				} catch (e) { /* ignore */ }
 				SPLASH_CLEANUP = null;
@@ -877,7 +882,19 @@ window.__ModuleLoader__.load({
 				if (e.key === "Escape" || e.key === "Enter" || e.key === " ") dismiss();
 			}
 
+			// If an account/Platform action is clicked while the ignition splash is
+			// still fading, force it away instead of letting a decorative layer sit
+			// over the native page transition.
+			function onAccountAction(event) {
+				var target = event.target;
+				if (!target || typeof target.closest !== "function") return;
+				var action = target.closest("[role=\"menu\"] a, [role=\"menu\"] button, [role=\"dialog\"] a, [role=\"dialog\"] button");
+				if (!action) return;
+				var text = String(action.textContent || "").toLowerCase();
+				if (/(usage|top.?up|query|用量|充值|账号|account)/i.test(text)) dismiss();
+			}
 			wrap.addEventListener("click", dismiss);
+			document.addEventListener("click", onAccountAction, true);
 			document.addEventListener("keydown", onKey);
 			if (reduced) {
 				removeTimer = setTimeout(dismiss, 650);

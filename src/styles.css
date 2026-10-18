@@ -752,6 +752,17 @@ html[data-dsh-admech] [role="listbox"] {
   border-radius: 2px !important;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6) !important;
 }
+/* Account / Platform entries must never inherit a decorative overlay's hit area. */
+html[data-dsh-admech] [role="menu"] a,
+html[data-dsh-admech] [role="menu"] button,
+html[data-dsh-admech] [role="dialog"] a,
+html[data-dsh-admech] [role="dialog"] button,
+html[data-dsh-admech] [data-slot*="account"] a,
+html[data-dsh-admech] [data-slot*="account"] button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 2;
+}
 
 /* ---------- chat surfaces ---------- */
 
