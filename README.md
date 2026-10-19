@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.11）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.12）
 
-> **状态：v0.7.11。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.11 机械神甫只保留原始描红的外轮廓，不再手工重绘。**
+> **状态：v0.7.12。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.12 在原始外轮廓基础上补齐权杖左侧原始描红线。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -280,9 +280,9 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 
 #
 
-## v0.7.11：机械神甫 SVG 素材 · 原始描红仅保留外轮廓
+## v0.7.12：机械神甫 SVG 素材 · 外轮廓 + 原始权杖左侧轮廓
 
-![tech priest original outer contour](shots/tech-priest-outer-only.png)
+![tech priest outer contour with staff left](shots/tech-priest-outer-staff-left.png)
 
 - 最终结果**只包含金色线条**：所有元素 fill="none"，无照片填色、无白色/灰色块、无剪影填充、无红色；
 - 按参考轮廓做**金色线条描红**：外轮廓与主要结构轮廓均由金色线描出；
