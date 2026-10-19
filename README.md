@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.13）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.14）
 
-> **状态：v0.7.13。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.13 从背景图中删除了机械神甫。**
+> **状态：v0.7.14。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.14 修复停止按钮、思考/代码图标闪烁和卸载弹窗遮挡。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -302,6 +302,24 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 - 铸炉圣殿建筑、旗帜、文字、地砖与光效保持不变；
 - 不再把独立的神甫素材放回背景；
 - 客户端 bundle 已重新构建。
+
+
+## v0.7.14：停止按钮 / 图标闪烁 / 卸载弹窗
+
+![running stop button](shots/stop-button-running.png)
+
+- **停止按钮**：40×40（移动端 34×34）火星红圆形按钮，亮金边、金色 pause 双竖条和脉冲光晕，运行中明显可见；
+- **原始图标闪烁**：
+  - 新增同步 `tagProcessIcons()`，MutationObserver 每批 DOM 变化先补标；
+  - 监听 `data-process-activity` / `data-tool` / `data-variant` 等状态属性；
+  - 打标前隐藏对应原生 SVG，思考/代码刚开始不再露出 DSH 原始图标；
+  - 修复 observer 自触发死循环。
+- **卸载弹窗**：顶部 84px 徽章上移到弹窗外侧；移动端/矮视口 64px 同样外置，不再覆盖标题。
+
+![uninstall dialog](shots/dialog-uninstall.png)
+
+- 实际验证：运行中停止按钮图标为 `process_pause`；运行/思考容器未打标原生图标数 0；工具栏带 `data-variant="think"` 时正确显示 `process_code`；
+- `layout_audit` desktop/mobile **PASS**（0 errors）。
 
 ## 验证
 

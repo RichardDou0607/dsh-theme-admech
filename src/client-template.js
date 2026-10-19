@@ -544,10 +544,64 @@ window.__ModuleLoader__.load({
 
 		function applyIcon(svg, key, brand) {
 			if (!svg || !ICON_BODIES[key]) return false;
-			svg.setAttribute("data-admech-icon", key);
+			// Keep this idempotent: tagProcessIcons runs from MutationObserver, and
+			// rewriting the same attribute would feed a mutation loop.
+			var changed = svg.getAttribute("data-admech-icon") !== key;
+			if (changed) svg.setAttribute("data-admech-icon", key);
 			if (brand) svg.setAttribute("data-admech-brand", "true");
-			return true;
+			return changed;
 		}
+
+		var tagProcessIcons = function () {
+			// Fast, synchronous retag for the running / thinking / tool rows. These states
+			// swap their native SVG after the main scan; retag before the next paint.
+			// A node can match more than one row shape (e.g. a tool row carrying
+			// data-variant="think"), so assign exactly one key per pass. Otherwise two
+			// selectors would alternate the attribute and feed an endless mutation loop.
+			var touched = [];
+			function mark(svg, key) {
+				if (!svg || touched.indexOf(svg) !== -1) return;
+				touched.push(svg);
+				applyIcon(svg, key);
+			}
+			var stepButtons = document.querySelectorAll("[data-process-activity]");
+			for (var sb = 0; sb < stepButtons.length; sb++) {
+				var stepButton = stepButtons[sb];
+				var stepActivity = stepButton.getAttribute("data-process-activity") || "";
+				var stepKey = PROCESS_ICON_KEYS[stepActivity];
+				if (!stepKey) continue;
+				mark(stepButton.querySelector("[data-step-process-icon] svg") || stepButton.querySelector("svg"), stepKey);
+			}
+			var thinkRows = document.querySelectorAll("[data-variant=\"think\"]:not([data-tool])");
+			for (var th = 0; th < thinkRows.length; th++) {
+				mark(thinkRows[th].querySelector("[class*=\"leading\"] svg") || thinkRows[th].querySelector("svg"), "process_think");
+			}
+			var toolRows = document.querySelectorAll("[data-tool]");
+			for (var tr = 0; tr < toolRows.length; tr++) {
+				var toolRow = toolRows[tr];
+				var toolName = toolRow.getAttribute("data-tool") || "";
+				var toolVariant = toolRow.getAttribute("data-variant") || "";
+				var toolKey = TOOL_ICON_KEYS[toolName];
+				if (!toolKey) {
+					if (toolName.indexOf("subagent") === 0) toolKey = "trinity";
+					else if (toolName.indexOf("web_search") !== -1 || toolName.indexOf("search") !== -1) toolKey = "search";
+					else if (toolName.indexOf("web") !== -1) toolKey = "process_web";
+					else if (toolName.indexOf("read") !== -1) toolKey = "process_read";
+					else if (toolName.indexOf("write") !== -1 || toolName.indexOf("edit") !== -1) toolKey = "process_edit";
+					else if (toolName.indexOf("bash") !== -1 || toolName.indexOf("command") !== -1) toolKey = "terminal";
+					else if (toolName.indexOf("code") !== -1) toolKey = "process_code";
+					else if (toolName.indexOf("plan") !== -1) toolKey = "process_plan";
+				}
+				if (!toolKey) toolKey = TOOL_VARIANT_ICONS[toolVariant];
+				if (!toolKey) continue;
+				var leadingWrap = toolRow.querySelector("[class*=\"leading\"]");
+				mark(leadingWrap ? leadingWrap.querySelector("svg") : toolRow.querySelector("svg"), toolKey);
+			}
+			var runningSvg = document.querySelector("[data-chat-running] [class*=\"runningIcon\"] svg") || document.querySelector("[data-chat-running] svg");
+			if (runningSvg && !runningSvg.getAttribute("data-admech-icon")) mark(runningSvg, "process_think");
+			var stopSvg = document.querySelector("[data-composer-card] button[aria-label=\"停止生成\"] svg");
+			if (stopSvg) mark(stopSvg, "process_pause");
+		};
 
 		function fingerprint(svg) {
 			var html = svg.innerHTML || "";
@@ -561,6 +615,7 @@ window.__ModuleLoader__.load({
 		}
 
 		function replaceAllIcons() {
+			tagProcessIcons();
 			var replaced = 0;
 			var seen = 0;
 			function swap(el, key, brand) {
@@ -644,7 +699,7 @@ window.__ModuleLoader__.load({
 			}
 
 			// Expanded process detail: reasoning disclosure rows ("思考").
-			var thinkRows = document.querySelectorAll("[data-variant=\"think\"]");
+			var thinkRows = document.querySelectorAll("[data-variant=\"think\"]:not([data-tool])");
 			for (var th = 0; th < thinkRows.length; th++) {
 				var thinkLeading = thinkRows[th].querySelector("[class*=\"leading\"] svg");
 				if (thinkLeading) applyIcon(thinkLeading, "process_think");
@@ -1029,11 +1084,13 @@ window.__ModuleLoader__.load({
 						var lastScan = 0;
 						observer = new MutationObserver(function (records) {
 							// The host writes inline transforms while virtualized rows scroll and
-							// streams nodes while a turn runs; coalesce those bursts instead of
-							// re-running the full tagging pass on every frame.
+							// streams nodes while a turn runs. The running/thinking rows can also
+							// swap their icon via an attribute-only update, so retag those before
+							// the next paint instead of waiting for the throttled full pass.
 							if (SPLASH_ACTIVE) return;
+							tagProcessIcons();
 							var now = (window.performance && performance.now) ? performance.now() : Date.now();
-							if (now - lastScan < 120) return;
+							if (now - lastScan < 40) return;
 							for (var i = 0; i < records.length; i++) {
 								var rec = records[i];
 								if (rec.type === "childList") { lastScan = now; schedule(); return; }
@@ -1041,7 +1098,7 @@ window.__ModuleLoader__.load({
 									// Our own writes must not feed the loop back into itself.
 									var name = rec.attributeName;
 									if (name === "style" || name === "data-admech" || name === "data-admech-icon" || name === "data-admech-ph" || name === ACTIVE_ATTR) continue;
-									lastScan = now; schedule(); return;
+									if (name === "data-process-activity" || name === "data-tool" || name === "data-variant" || name === "class" || name === "aria-label" || name === "aria-busy") { lastScan = now; schedule(); return; }
 								}
 							}
 						});
