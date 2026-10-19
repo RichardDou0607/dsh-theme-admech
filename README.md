@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.15）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.16）
 
-> **状态：v0.7.15。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.15 补齐未知过程状态的原生图标兜底。**
+> **状态：v0.7.16。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.16 修复停用/卸载后主题保持暗色的问题。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -333,6 +333,17 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
   - 未知工具 `mystery_tool` → `tools`
   - 停止按钮 → `process_pause`
   - 原生未打标图标数 0
+
+
+## v0.7.16：停用/卸载后恢复原主题
+
+![restored light theme after disabling](shots/theme-restored-light.png)
+
+- 插件启用前记录用户的真实主题偏好（`light` / `dark` / `system` / 第三方主题 id）；
+- 插件强制 dark 期间不改写这个记录；
+- 停用/卸载清理时调用 `ctx.theme.setTheme(previousThemePreference)`，恢复到启用前的主题；
+- 同时移除 `data-ds-dark-theme`、`color-scheme: dark` 等强制暗色标记；
+- 实测隔离 profile：停用插件后页面恢复为亮色（`bodyBg: rgb(255,255,255)`、`colorScheme: light`），不再出现“显示暗色但实际设置是亮色”。
 
 ## 验证
 
