@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.14）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.15）
 
-> **状态：v0.7.14。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.14 修复停止按钮、思考/代码图标闪烁和卸载弹窗遮挡。**
+> **状态：v0.7.15。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.15 补齐未知过程状态的原生图标兜底。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -320,6 +320,19 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
 
 - 实际验证：运行中停止按钮图标为 `process_pause`；运行/思考容器未打标原生图标数 0；工具栏带 `data-variant="think"` 时正确显示 `process_code`；
 - `layout_audit` desktop/mobile **PASS**（0 errors）。
+
+
+## v0.7.15：图标覆盖兜底
+
+- 未知 `data-process-activity`：按关键字兜底到 `process_code` / `process_web` / `process_think`；
+- 未知 `data-tool`：兜底到 `tools`，不再保留原生工具图标；
+- 运行中容器、步骤图标、停止按钮的原生 SVG 在打标前隐藏；
+- 工具行 / 思考行只隐藏 leading 图标，避免误伤工具结果里的其他图标；
+- 合成状态验证：
+  - 未知步骤 `mystery_exec` → `process_code`
+  - 未知工具 `mystery_tool` → `tools`
+  - 停止按钮 → `process_pause`
+  - 原生未打标图标数 0
 
 ## 验证
 

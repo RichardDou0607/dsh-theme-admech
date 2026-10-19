@@ -569,7 +569,11 @@ window.__ModuleLoader__.load({
 				var stepButton = stepButtons[sb];
 				var stepActivity = stepButton.getAttribute("data-process-activity") || "";
 				var stepKey = PROCESS_ICON_KEYS[stepActivity];
-				if (!stepKey) continue;
+				if (!stepKey) {
+					if (/code|exec|terminal|shell|command/i.test(stepActivity)) stepKey = "process_code";
+					else if (/read|search|web|fetch/i.test(stepActivity)) stepKey = "process_web";
+					else stepKey = "process_think";
+				}
 				mark(stepButton.querySelector("[data-step-process-icon] svg") || stepButton.querySelector("svg"), stepKey);
 			}
 			var thinkRows = document.querySelectorAll("[data-variant=\"think\"]:not([data-tool])");
@@ -593,6 +597,7 @@ window.__ModuleLoader__.load({
 					else if (toolName.indexOf("plan") !== -1) toolKey = "process_plan";
 				}
 				if (!toolKey) toolKey = TOOL_VARIANT_ICONS[toolVariant];
+				if (!toolKey) toolKey = toolRow.querySelector("svg") ? "tools" : null;
 				if (!toolKey) continue;
 				var leadingWrap = toolRow.querySelector("[class*=\"leading\"]");
 				mark(leadingWrap ? leadingWrap.querySelector("svg") : toolRow.querySelector("svg"), toolKey);
