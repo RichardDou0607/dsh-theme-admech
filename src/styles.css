@@ -734,8 +734,11 @@ html[data-dsh-admech] [data-slot="main.conversation"] > div::before {
   opacity: 0.9;
 }
 /* ---------- dialogs / menus: cathedral frame ---------- */
+/* Portaled popovers (composer statistics, context meter, turn usage) are
+   position:fixed panels with their own anchoring. Exclude them from the modal
+   cathedral frame, otherwise the forced position:relative hides the panel. */
 
-html[data-dsh-admech] [role="dialog"] {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) {
   position: relative;
   background-color: #0c0805 !important;
   background-image:
@@ -749,7 +752,7 @@ html[data-dsh-admech] [role="dialog"] {
   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), inset 0 0 0 var(--admech-hairline, 1px) rgba(0, 0, 0, 0.65) !important;
   overflow: visible !important;
 }
-html[data-dsh-admech] [role="dialog"]::before {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::before {
   content: "";
   position: absolute;
   inset: 6px;
@@ -758,7 +761,7 @@ html[data-dsh-admech] [role="dialog"]::before {
   pointer-events: none;
   z-index: 0;
 }
-html[data-dsh-admech] [role="dialog"]::after {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -771,15 +774,15 @@ html[data-dsh-admech] [role="dialog"]::after {
   z-index: 2;
   filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.55));
 }
-html[data-dsh-admech] [role="dialog"] > * { position: relative; z-index: 1; }
-html[data-dsh-admech] [role="dialog"] h1,
-html[data-dsh-admech] [role="dialog"] h2 {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) > * { position: relative; z-index: 1; }
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) h1,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) h2 {
   font-family: var(--admech-serif) !important;
   letter-spacing: 0.12em;
   color: var(--admech-brass-bright) !important;
 }
-html[data-dsh-admech] [role="dialog"] h1::after,
-html[data-dsh-admech] [role="dialog"] h2::after {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) h1::after,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) h2::after {
   content: "";
   display: block;
   height: 14px;
@@ -787,27 +790,27 @@ html[data-dsh-admech] [role="dialog"] h2::after {
   background: var(--admech-divider) center / contain no-repeat;
   opacity: 0.8;
 }
-html[data-dsh-admech] [role="dialog"] p { color: var(--admech-parchment-dim) !important; }
-html[data-dsh-admech] [role="dialog"] button { border-radius: 2px !important; }
-html[data-dsh-admech] [role="dialog"] button[class*="primary"] {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) p { color: var(--admech-parchment-dim) !important; }
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) button { border-radius: 2px !important; }
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) button[class*="primary"] {
   background: var(--admech-mars) !important;
   border: var(--admech-hairline, 1px) solid rgba(201, 161, 90, 0.58) !important;
   color: #f7ecd5 !important;
   box-shadow: inset 0 1px 0 rgba(255, 220, 180, 0.2);
 }
-html[data-dsh-admech] [role="dialog"] button[class*="primary"]:hover {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) button[class*="primary"]:hover {
   background: var(--admech-mars-bright) !important;
   box-shadow: inset 0 1px 0 rgba(255, 220, 180, 0.28), 0 0 20px rgba(194, 55, 43, 0.32);
 }
-html[data-dsh-admech] [role="dialog"] input,
-html[data-dsh-admech] [role="dialog"] textarea {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) input,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) textarea {
   background: rgba(8, 6, 3, 0.9) !important;
   border: var(--admech-hairline, 1px) solid rgba(201, 161, 90, 0.32) !important;
   border-radius: 2px !important;
   color: var(--admech-parchment) !important;
 }
-html[data-dsh-admech] [role="dialog"] input:focus,
-html[data-dsh-admech] [role="dialog"] textarea:focus {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) input:focus,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) textarea:focus {
   border-color: rgba(227, 193, 132, 0.8) !important;
   outline: none !important;
   box-shadow: 0 0 0 var(--admech-hairline, 1px) rgba(201, 161, 90, 0.35), 0 0 20px rgba(201, 161, 90, 0.10) !important;
@@ -823,8 +826,8 @@ html[data-dsh-admech] [role="listbox"] {
 /* Account / Platform entries must never inherit a decorative overlay's hit area. */
 html[data-dsh-admech] [role="menu"] a,
 html[data-dsh-admech] [role="menu"] button,
-html[data-dsh-admech] [role="dialog"] a,
-html[data-dsh-admech] [role="dialog"] button,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) a,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) button,
 html[data-dsh-admech] [data-slot*="account"] a,
 html[data-dsh-admech] [data-slot*="account"] button {
   pointer-events: auto !important;
@@ -838,9 +841,9 @@ html[data-dsh-admech] [data-slot*="account"] button {
    puts data-window-drag on the <header> itself, so the bare-header selector is
    the one that matches before the JS compatibility marker runs; the nested form
    stays for older DOM. */
-html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag]),
-html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag]),
-html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"] {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header[data-window-drag]),
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header [data-window-drag]),
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])[data-admech-platform-overlay="true"] {
   position: fixed !important;
   inset: 0 !important;
   z-index: 1001 !important;
@@ -853,12 +856,12 @@ html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"] {
   box-shadow: none !important;
   overflow: visible !important;
 }
-html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag])::before,
-html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag])::after,
-html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::before,
-html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::after,
-html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"]::before,
-html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"]::after {
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header[data-window-drag])::before,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header[data-window-drag])::after,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header [data-window-drag])::before,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]):has(> header [data-window-drag])::after,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])[data-admech-platform-overlay="true"]::before,
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])[data-admech-platform-overlay="true"]::after {
   display: none !important;
   content: none !important;
 }
@@ -927,7 +930,7 @@ html[data-dsh-admech] svg[data-admech-icon][data-admech-brand] {
   filter: drop-shadow(0 0 9px rgba(201, 161, 90, 0.45));
 }
 html[data-dsh-admech] button[aria-label="发送消息"] svg[data-admech-icon] { color: #f7ecd5; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
-html[data-dsh-admech] [role="dialog"] button[aria-label="关闭"] svg[data-admech-icon] { color: var(--admech-parchment); }
+html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]) button[aria-label="关闭"] svg[data-admech-icon] { color: var(--admech-parchment); }
 
 /* Never let the native glyph flash before the mask is attached; show our icon as soon as tagged. */
 html[data-dsh-admech] [data-chat-running] svg:not([data-admech-icon]),
@@ -1229,7 +1232,7 @@ html[data-dsh-admech] [data-slot="main"] [class*="groupTitle"] {
   html[data-dsh-admech] [data-composer-card] [data-tone="info"] { display: none !important; }
   html[data-dsh-admech] [data-composer-card]::after { width: 200px; height: 84px; top: -58px; }
   html[data-dsh-admech] [data-slot="main.conversation"] > div::before { display: none; }
-  html[data-dsh-admech] [role="dialog"]::after { width: 64px; height: 64px; top: -64px; }
+  html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::after { width: 64px; height: 64px; top: -64px; }
   html[data-dsh-admech] [data-slot="main.conversation"] > div { background-position: center !important; }
 }
 
@@ -1247,7 +1250,7 @@ html[data-dsh-admech] [data-slot="main"] [class*="groupTitle"] {
 
 @media (max-height: 760px) {
   /* A dialog centred with 24px of top padding clips the 38px medallion. */
-  html[data-dsh-admech] [role="dialog"]::after { width: 64px; height: 64px; top: -64px; }
+  html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::after { width: 64px; height: 64px; top: -64px; }
 }
 
 /* ---------- Windows platform corrections ---------- */
@@ -1276,8 +1279,8 @@ html[data-dsh-admech][data-admech-os="win"] .admech-splash.is-out { transform: n
   html[data-dsh-admech] [data-composer-card]::before,
   html[data-dsh-admech] [data-composer-card]::after,
   html[data-dsh-admech] [data-slot="main.conversation"] > div::before,
-  html[data-dsh-admech] [role="dialog"]::before,
-  html[data-dsh-admech] [role="dialog"]::after,
+  html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::before,
+  html[data-dsh-admech] [role="dialog"]:not([class*="_panel"])::after,
   html[data-dsh-admech] [data-changed-files]::before,
   html[data-dsh-admech] [data-changed-files]::after,
   html[data-dsh-admech] [data-presented-file]::before,
@@ -1292,7 +1295,7 @@ html[data-dsh-admech][data-admech-os="win"] .admech-splash.is-out { transform: n
   html[data-dsh-admech] [data-admech="header"],
   html[data-dsh-admech] [data-composer-card],
   html[data-dsh-admech] [data-slot="main.conversation"] > div,
-  html[data-dsh-admech] [role="dialog"],
+  html[data-dsh-admech] [role="dialog"]:not([class*="_panel"]),
   html[data-dsh-admech] [data-changed-files],
   html[data-dsh-admech] [data-presented-file] {
     background-image: none !important;

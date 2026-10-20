@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.17）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.18）
 
-> **状态：v0.7.17。修复 Windows 上「查询用量 / 充值」内嵌 Platform 页黑屏的问题（Platform 宿主选择器匹配到了 host 自己的 `<header>`，原生视图在错误 bounds 上打开）。macOS 行为不变。**
+> **状态：v0.7.18。修复 Windows 上「查询用量 / 充值」内嵌 Platform 页黑屏，并修复底部速率/用量/上下文统计面板无法打开。macOS 行为不变。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -389,6 +389,15 @@ Windows 上原生视图按「高度 0、y=989（窗口外）」创建后，之�
 - 停用/卸载清理时调用 `ctx.theme.setTheme(previousThemePreference)`，恢复到启用前的主题；
 - 同时移除 `data-ds-dark-theme`、`color-scheme: dark` 等强制暗色标记；
 - 实测隔离 profile：停用插件后页面恢复为亮色（`bodyBg: rgb(255,255,255)`、`colorScheme: light`），不再出现“显示暗色但实际设置是亮色”。
+
+
+## v0.7.18：修复底部统计面板无法打开
+
+- 背景：主题把通用 `[role="dialog"]` 全部套上弹窗边框和 `position: relative !important`；
+- 底部的速率/用量统计面板、上下文用量面板、轮次 token 用量面板都是**挂载到 body 的 `position: fixed` 浮动面板**，被主题改成 relative 后位置错乱，看起来像点击无效；
+- 修复：所有 `[role="dialog"]` 选择器加上 `:not([class*="_panel"])`，统计/上下文/token 面板不再套用模态弹窗框；
+- 卸载确认弹窗等真正的模态 `role="dialog"` 不受影响（实测 class `_dialog_o6lrb_33` 仍使用主题边框和徽章）；
+- 合成面板验证：修复后 `position: fixed`、无主题伪元素，触发按钮点击可正常显示。
 
 ## 验证
 
