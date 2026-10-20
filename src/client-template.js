@@ -838,11 +838,15 @@ window.__ModuleLoader__.load({
 				}
 				mark("[data-slot=\"main\"] header", "header");
 				// Native Platform WebContentsView host: mark it so the generic dialog
-				// frame never changes its fixed full-window layout/bounds.
-				var platformHeader = document.querySelector("[role=\"dialog\"] [data-window-drag]");
-				if (platformHeader) {
-					var platformDialog = platformHeader.closest("[role=\"dialog\"]");
-					if (platformDialog) platformDialog.setAttribute("data-admech-platform-overlay", "true");
+				// frame never changes its fixed full-window layout/bounds. The host puts
+				// data-window-drag on the <header> itself (the nested form covers older
+				// DOM). The CSS in styles.css already matches the bare-header form, so
+				// this marker is only a compatibility path for browsers without :has().
+				var platformDialogs = document.querySelectorAll("[role=\"dialog\"]");
+				for (var pd = 0; pd < platformDialogs.length; pd++) {
+					var platformDialog = platformDialogs[pd];
+					var platformHeader = platformDialog.querySelector(":scope > header[data-window-drag], :scope > header [data-window-drag]");
+					if (platformHeader) platformDialog.setAttribute("data-admech-platform-overlay", "true");
 				}
 				var markEl = document.querySelector("[data-slot=\"conversation.hero.brand.mark\"]");
 				if (markEl && markEl.parentElement && markEl.parentElement.parentElement) {

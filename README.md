@@ -1,6 +1,6 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.16）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.17）
 
-> **状态：v0.7.16。macOS（DSH 0.2.1-rc.2）与 Windows 11 真机均完成渲染验收；v0.7.16 修复停用/卸载后主题保持暗色的问题。**
+> **状态：v0.7.17。修复 Windows 上「查询用量 / 充值」内嵌 Platform 页黑屏的问题（Platform 宿主选择器匹配到了 host 自己的 `<header>`，原生视图在错误 bounds 上打开）。macOS 行为不变。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
@@ -334,6 +334,51 @@ DSH Desktop 的“查询用量 / 充值”会挂载一个原生 Platform WebCont
   - 停止按钮 → `process_pause`
   - 原生未打标图标数 0
 
+
+## v0.7.17：修复 Windows 上「查询用量 / 充值」内嵌页黑屏
+
+### 现象
+
+Windows 11 上点「查询用量」或「充值」：返回栏出现、先显示加载转圈，随后内容区变黑，原生 Platform 页面始终加载不出来。macOS 上同一路径正常。
+
+### 根因
+
+DSH Desktop 的内嵌 Platform 页是一个原生 `WebContentsView`，宿主 DOM 为：
+
+    <div role="dialog" aria-modal="true">
+      <header data-window-drag="true">…返回 DeepSeek Harness…</header>
+      <div class="…viewport">…</div>
+    </div>
+
+`PlatformOverlay` 在 `useEffect` 里用 `.viewport` 的 `getBoundingClientRect()` 作为传给主进程的 bounds。主题的通用 `[role="dialog"]` 哥特框会把宿主容器改成 `position: relative`（主题选择器优先级高于宿主自带的 `.overlay`），只有平台专用规则才能把它恢复成 `position: fixed; inset: 0`。
+
+平台专用规则原来写的是：
+
+    [role="dialog"]:has(> header [data-window-drag])
+
+这是 **header 的后代**；而 DSH 把 `data-window-drag` 放在 **header 自己身上**，所以该选择器永远不匹配。实际上要等主题 MutationObserver 的 `tagNodes()` 补上 `data-admech-platform-overlay="true"` 之后，CSS 才生效——已经晚于 React `useEffect` 读取 bounds 的时机。
+
+实测（隔离环境，模拟 Windows 标题栏 40px，合成同一个 PlatformOverlay DOM）：
+
+| 时刻 | overlay position | viewport rect | 传给主进程的 bounds |
+| --- | --- | --- | --- |
+| 挂载当帧（shipped 0.7.16） | relative | x=1, y=989, **1433×0** | 高度 0、已在窗口外 |
+| 挂载当帧（修正选择器后） | fixed | x=0, y=88, 1440×812 | 正确 |
+| 1 帧后（JS 打标完成） | fixed | x=0, y=88, 1440×812 | 正确 |
+
+Windows 上原生视图按「高度 0、y=989（窗口外）」创建后，之后再 `setBounds` 也不会重新绘制，于是内容区一直是黑的；macOS 的合成器会重绘，所以之前只在 mac 上看不出问题。
+
+### 修复
+
+- CSS 增加 `:has(> header[data-window-drag])`（保留原来的后代形式兼容旧 DOM），让 host 在**第一帧**就是 `position: fixed; inset: 0`，`::before/::after` 也在第一帧隐藏；
+- JS 打标改为遍历 `[role="dialog"]`，只给「直接子 header 带 `data-window-drag`（或 header 内含该属性）」的 dialog 打标，不再用 `document.querySelector("[role=\"dialog\"] [data-window-drag]")` 取全局第一个；
+- 版本号 0.7.17；macOS 路径无变化。
+
+### 验证
+
+- 修正后合成 DOM 在挂载当帧即返回 `bounds = {x:0, y:88, width:1440, height:812}`（Windows 标题栏模拟，1440×900）；
+- 无主题时同一 DOM 同为 `{0,88,1440,812}`，说明修复后与宿主原生布局一致；
+- 主题 JS 打标仍能命中（`data-admech-platform-overlay="true"`），作为无 `:has()` 环境的兜底。
 
 ## v0.7.16：停用/卸载后恢复原主题
 

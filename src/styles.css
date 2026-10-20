@@ -834,7 +834,11 @@ html[data-dsh-admech] [data-slot*="account"] button {
 
 /* The native Platform page is hosted in a full-window WebContentsView. Never
    apply the generic cathedral dialog frame to its DOM container (position /
-   inset / overflow changes move or collapse the native view bounds). */
+   inset / overflow changes move or collapse the native view bounds). The host
+   puts data-window-drag on the <header> itself, so the bare-header selector is
+   the one that matches before the JS compatibility marker runs; the nested form
+   stays for older DOM. */
+html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag]),
 html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag]),
 html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"] {
   position: fixed !important;
@@ -849,6 +853,8 @@ html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"] {
   box-shadow: none !important;
   overflow: visible !important;
 }
+html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag])::before,
+html[data-dsh-admech] [role="dialog"]:has(> header[data-window-drag])::after,
 html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::before,
 html[data-dsh-admech] [role="dialog"]:has(> header [data-window-drag])::after,
 html[data-dsh-admech] [role="dialog"][data-admech-platform-overlay="true"]::before,
