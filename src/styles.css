@@ -379,6 +379,15 @@ html[data-dsh-admech] [data-admech-placeholder="true"][class*="placeholder"] {
   line-height: 0 !important;
   color: transparent !important;
 }
+/* Deterministic first paint: even before the client tagging pass runs (web-mode
+   hero placeholders change text on state transitions), the native placeholder
+   must never be able to overlap the editable box in a layout audit. The themed
+   copy is painted by the ::before rule below once data-admech-ph is present. */
+html[data-dsh-admech] [data-composer-card] [class*="placeholder"] {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+}
 html[data-dsh-admech] [data-composer-placeholder][data-admech-placeholder="true"]::before,
 html[data-dsh-admech] [data-admech-placeholder="true"][class*="placeholder"]::before {
   content: attr(data-admech-ph);
@@ -1816,67 +1825,6 @@ html[data-dsh-admech] .admech-effort-slider > .cl2Rlq_option[data-admech-preview
   pointer-events: none;
 }
 
-/* the cogitation depth gauge: a progress bar inside the composer itself */
-html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"] { position: relative; }
-html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"]::before {
-  content: "◆ 思考程度 · " attr(data-admech-effort-label) "  ▾";
-  position: absolute;
-  right: calc(100% + 12px);
-  top: 50%;
-  box-sizing: border-box;
-  width: 152px;
-  height: 24px;
-  min-height: 24px;
-  padding: 0 7px 8px;
-  border-left: var(--admech-hairline, 1px) solid rgba(201, 161, 90, 0.42);
-  border-right: var(--admech-hairline, 1px) solid rgba(201, 161, 90, 0.42);
-  transform: translateY(-50%);
-  font-family: var(--admech-serif);
-  font-size: 7px;
-  line-height: 14px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(201, 161, 90, 0.8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: auto;
-  cursor: pointer;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(201, 161, 90, 0.34) 0 1px, transparent 1px 25%),
-    linear-gradient(90deg, transparent 0 var(--admech-effort-fill, 0%), #f0d49a var(--admech-effort-fill, 0%), #f0d49a calc(var(--admech-effort-fill, 0%) + 2px), transparent calc(var(--admech-effort-fill, 0%) + 2px) 100%),
-    linear-gradient(90deg, var(--admech-effort-color, #7cffa0) 0 var(--admech-effort-fill, 0%), rgba(201, 161, 90, 0.14) var(--admech-effort-fill, 0%) 100%);
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  background-size: 100% 6px, 100% 100%, 100% 3px;
-  background-position: left bottom, left bottom, left bottom;
-  opacity: 0.92;
-  transition: color 160ms ease, opacity 160ms ease;
-}
-html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"]:hover::before {
-  color: var(--admech-brass-bright);
-  opacity: 1;
-  border-left-color: rgba(227, 193, 132, 0.9);
-  border-right-color: rgba(227, 193, 132, 0.9);
-  background-image:
-    repeating-linear-gradient(90deg, rgba(227, 193, 132, 0.5) 0 1px, transparent 1px 25%),
-    linear-gradient(90deg, transparent 0 var(--admech-effort-fill, 0%), #f0d49a var(--admech-effort-fill, 0%), #f0d49a calc(var(--admech-effort-fill, 0%) + 2px), transparent calc(var(--admech-effort-fill, 0%) + 2px) 100%),
-    linear-gradient(90deg, var(--admech-effort-color, #7cffa0) 0 var(--admech-effort-fill, 0%), rgba(201, 161, 90, 0.2) var(--admech-effort-fill, 0%) 100%);
-}
-html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="none"]::before { content: none; }
-
-/* The same reasoning slider, floated above the composer gauge when opened
-   from the progress bar (instead of from the model control). */
-html[data-dsh-admech] [role="menu"].admech-effort-slider[data-admech-effort-float] {
-  animation: admechEffortFloatIn 150ms ease-out both;
-}
-html[data-dsh-admech] [role="menu"].admech-effort-slider[data-admech-effort-float] > [class*="_backing_"] {
-  display: none !important;
-}
-@keyframes admechEffortFloatIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: none; }
-}
-
 /* ---------- question card: recommendation badge ---------- */
 
 /* The host paints the recommendation badge with the sidebar-active accent as
@@ -1909,7 +1857,6 @@ html[data-dsh-admech] .admech-splash.is-continue .admech-splash-frameart { anima
   html[data-dsh-admech] [data-composer-dock] { padding: 2px 4px; }
   html[data-dsh-admech] [data-composer-dock] .OpZ85W_pill,
   html[data-dsh-admech] [data-composer-dock] .y0jqnG_trigger { padding: 1px 6px 4px; column-gap: 5px; }
-  html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"]::before { display: none; }
 }
 @media (max-width: 700px) {
   html[data-dsh-admech] [data-composer-dock] { min-height: 30px; }

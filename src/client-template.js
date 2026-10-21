@@ -887,182 +887,14 @@ window.__ModuleLoader__.load({
 			}
 		}
 
-		// Reasoning effort is a model-selection row. The theme turns the drill-in
-		// list into a discrete slider and mirrors the current level into a thin
-		// progress bar under the model control (inside the composer).
-		var EFFORT_RANK = {
-			off: 0,
-			none: 0,
-			disabled: 0,
-			minimal: 0.16,
-			min: 0.16,
-			low: 0.33,
-			medium: 0.5,
-			med: 0.5,
-			high: 0.72,
-			max: 1,
-			maximum: 1
-		};
-
-		function readEffortLabel(trigger) {
-			if (!trigger) return "";
-			var label = trigger.getAttribute("aria-label") || "";
-			var match = /推理等级\s*([^\s,，。]+)/.exec(label);
-			if (!match) match = /reasoning level\s+([^\s,.;]+)/i.exec(label);
-			if (match) return match[1].replace(/[.。]$/, "").trim();
-			var title = trigger.getAttribute("title") || "";
-			var parts = title.split("·");
-			if (parts.length > 1) return parts[parts.length - 1].trim();
-			return "";
-		}
-
-		function effortRatio(label) {
-			var key = String(label || "").toLowerCase().trim();
-			if (!key) return -1;
-			if (EFFORT_RANK[key] !== undefined) return EFFORT_RANK[key];
-			if (key.indexOf("off") === 0 || key.indexOf("关闭") === 0 || key.indexOf("关") === 0) return 0;
-			if (key.indexOf("max") === 0 || key.indexOf("最高") === 0 || key.indexOf("极") === 0) return 1;
-			if (key.indexOf("high") === 0 || key.indexOf("高") === 0) return 0.72;
-			if (key.indexOf("med") === 0 || key.indexOf("中") === 0) return 0.5;
-			if (key.indexOf("low") === 0 || key.indexOf("低") === 0 || key.indexOf("min") === 0) return 0.33;
-			return 0.6;
-		}
-
-		function paintEffortGauge(root, label, ratio) {
-			if (!root) return;
-			try {
-				root.setAttribute("data-admech-effort-label", label || "");
-				if (!label || ratio < 0) {
-					root.setAttribute("data-admech-effort-state", "none");
-					root.style.setProperty("--admech-effort-ratio", "0");
-					root.style.setProperty("--admech-effort-fill", "0%");
-					return;
-				}
-				root.setAttribute("data-admech-effort-state", "ok");
-				root.setAttribute("title", "思考程度 · 点击进度条调整");
-				root.style.setProperty("--admech-effort-label", label);
-				root.style.setProperty("--admech-effort-ratio", String(ratio));
-				root.style.setProperty("--admech-effort-fill", Math.round(ratio * 100) + "%");
-				root.style.setProperty("--admech-effort-color", ratio <= 0 ? "rgba(201, 161, 90, 0.55)" : (ratio >= 0.99 ? "#e3c184" : "#7cffa0"));
-			} catch (e) { /* best effort */ }
-		}
-
-		function modelRoots() {
-			var list = document.querySelectorAll("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
-			return list;
-		}
-
-		var effortGaugeRequest = null;
-		var effortGaugeTimer = null;
-
-		function clearEffortGaugeRequest() {
-			effortGaugeRequest = null;
-			if (effortGaugeTimer) { clearTimeout(effortGaugeTimer); effortGaugeTimer = null; }
-		}
-
-		function requestEffortFromGauge(root) {
-			var trigger = root.querySelector("button");
-			if (!trigger) return;
-			// Mark the open as "from the gauge": decorateEffortControl then drives
-			// the native menu straight into 推理等级 and floats the same slider
-			// panel above the gauge instead of anchoring it to the model button.
-			effortGaugeRequest = { root: root, requestedAt: Date.now() };
-			if (effortGaugeTimer) clearTimeout(effortGaugeTimer);
-			effortGaugeTimer = setTimeout(clearEffortGaugeRequest, 2200);
-			trigger.click();
-		}
-
-		function ensureModelRootAffordance(root) {
-			if (!root || root.__admechEffortBound) return;
-			root.__admechEffortBound = true;
-			// The cogitation gauge is a pseudo-element of the root that overflows
-			// to the left. Clicks on it report the root itself; open the very same
-			// reasoning slider the model menu uses, floating above the gauge.
-			root.addEventListener("click", function (event) {
-				if (event.target !== root) return;
-				event.preventDefault();
-				requestEffortFromGauge(root);
-			});
-		}
-
-		function autoDrillEffortMenu(menu) {
-			if (effortOptions(menu).length > 0) return;
-			var cells = menu.querySelectorAll(".cl2Rlq_cell");
-			if (!cells.length) return;
-			// The intermediate model/reasoning menu is only a vehicle: hide it while
-			// programmatically entering the reasoning drill-in.
-			menu.style.visibility = "hidden";
-			if (menu.__admechAutoDrilled) return;
-			menu.__admechAutoDrilled = true;
-			var target = cells[cells.length - 1];
-			for (var i = 0; i < cells.length; i++) {
-				if (/推理等级|reasoning/i.test(cells[i].textContent || "")) { target = cells[i]; break; }
-			}
-			setTimeout(function () {
-				try { target.click(); } catch (e) { /* ignore */ }
-				// The drill-in renders a fresh option list; run the scan immediately
-				// instead of waiting for the mutation throttle, then once more after
-				// React commits the list.
-				if (NOTIFY) { try { NOTIFY(); } catch (e) { /* ignore */ } }
-				setTimeout(function () { if (NOTIFY) { try { NOTIFY(); } catch (e) { /* ignore */ } } }, 80);
-			}, 0);
-			setTimeout(function () {
-				// Safety: never leave the intermediate menu invisible if the
-				// drill-in failed to materialise.
-				if (menu.isConnected && effortOptions(menu).length === 0) menu.style.visibility = "";
-			}, 500);
-		}
-
-		function positionEffortMenuAtGauge(menu) {
-			var root = effortGaugeRequest && effortGaugeRequest.root && effortGaugeRequest.root.isConnected
-				? effortGaugeRequest.root
-				: document.querySelector("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
-			if (!root) { menu.style.visibility = ""; return; }
-			menu.style.visibility = "hidden";
-			function apply() {
-				if (!menu.isConnected) return;
-				var rr = root.getBoundingClientRect();
-				var mr = menu.getBoundingClientRect();
-				var vw = window.innerWidth || document.documentElement.clientWidth;
-				var vh = window.innerHeight || document.documentElement.clientHeight;
-				// The gauge is a 152px-wide pseudo-element ending 12px left of the
-				// model control; centre the same slider panel above it.
-				var gaugeCenterX = rr.left - 12 - 76;
-				var left = Math.round(gaugeCenterX - mr.width / 2);
-				left = Math.max(8, Math.min(vw - mr.width - 8, left));
-				var top = Math.round(rr.top - mr.height - 14);
-				if (top < 8) top = Math.round(rr.bottom + 14);
-				menu.style.setProperty("left", left + "px", "important");
-				menu.style.setProperty("top", top + "px", "important");
-				menu.setAttribute("data-admech-effort-float", "true");
-				menu.style.visibility = "";
-			}
-			requestAnimationFrame(function () { apply(); requestAnimationFrame(apply); });
-			setTimeout(apply, 50);
-			setTimeout(apply, 160);
-		}
-
+		// Reasoning effort is a model-selection row. The theme renders the
+		// drill-in list as a discrete slider inside the model menu. The old
+		// always-visible composer progress bar was removed in v0.9.2 at the
+		// user's request, so nothing is injected into the composer.
 		function decorateEffortControl() {
-			var roots = modelRoots();
-			for (var i = 0; i < roots.length; i++) {
-				var root = roots[i];
-				var trigger = root.querySelector("button");
-				var label = readEffortLabel(trigger);
-				paintEffortGauge(root, label, effortRatio(label));
-				if (label) ensureModelRootAffordance(root);
-			}
 			var menus = document.querySelectorAll("[role=\"menu\"].cl2Rlq_menu");
-			for (var m = 0; m < menus.length; m++) {
-				var menu = menus[m];
-				if (effortGaugeRequest) autoDrillEffortMenu(menu);
-				enhanceEffortMenu(menu);
-				if (effortGaugeRequest && menu.classList.contains("admech-effort-slider")) {
-					positionEffortMenuAtGauge(menu);
-					clearEffortGaugeRequest();
-				}
-			}
+			for (var m = 0; m < menus.length; m++) enhanceEffortMenu(menus[m]);
 		}
-
 		function effortOptions(menu) {
 			var out = [];
 			var children = menu.children;
@@ -1130,14 +962,7 @@ window.__ModuleLoader__.load({
 			menu.style.setProperty("--admech-track-top", metrics.trackTop.toFixed(1) + "px");
 			menu.style.setProperty("--admech-effort-fill", (ratio * metrics.width).toFixed(1) + "px");
 			menu.style.setProperty("--admech-effort-ratio", String(ratio));
-			var root = document.querySelector("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
-			if (root) {
-				var label = options[index] ? (options[index].textContent || "").trim() : "";
-				root.style.setProperty("--admech-effort-ratio", String(ratio));
-				root.style.setProperty("--admech-effort-fill", Math.round(ratio * 100) + "%");
-				root.style.setProperty("--admech-effort-color", ratio <= 0 ? "rgba(201, 161, 90, 0.55)" : (ratio >= 0.99 ? "#e3c184" : "#7cffa0"));
-				if (label) root.style.setProperty("--admech-effort-label", label);
-			}
+
 		}
 
 		function effortIndexAt(options, clientX) {
@@ -1247,6 +1072,10 @@ window.__ModuleLoader__.load({
 		}
 
 		function cleanupComposerInstruments() {
+			// Remove the tooltip left on the model root by the removed v0.8–v0.9.1
+			// composer gauge (HMR can keep the element alive across a reload).
+			var gaugeTitles = document.querySelectorAll("[title=\"思考程度 · 点击进度条调整\"]");
+			for (var gt = 0; gt < gaugeTitles.length; gt++) gaugeTitles[gt].removeAttribute("title");
 			var menus = document.querySelectorAll(".admech-effort-slider");
 			for (var i = 0; i < menus.length; i++) menus[i].classList.remove("admech-effort-slider");
 			var styled = document.querySelectorAll("[style*=\"--admech-\"]");
@@ -1658,7 +1487,6 @@ window.__ModuleLoader__.load({
 								// A throttled batch can still carry a semantic change (model
 								// selection, reasoning level). Never drop those permanently:
 								// coalesce them into one later pass.
-								if (effortGaugeRequest) { schedule(); return; }
 								for (var q = 0; q < records.length; q++) {
 									if (records[q].type !== "attributes") continue;
 									var quick = records[q].attributeName;
