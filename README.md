@@ -1,11 +1,28 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.9.2）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.9.3）
 
-> **状态：v0.9.2。按需求**移除输入框（会话框）里的「思考程度」进度条**及其点击交互；思考程度仍在模型 / 推理等级菜单中用同一个离散滑块调整。v0.9.1 的展开命令行图标修复、v0.9.0 的 macOS 应用图标 / 推荐标签 / 发送键修复保持。**
+> **状态：v0.9.3。macOS 应用图标替换器现在可以在「App 管理」里授权后直接替换（无需退出 DSH，本机已实测成功并在 Dock 刷新）；同时保留 v0.9.2 的输入框精简（移除思考程度进度条）、v0.9.1 的展开命令行图标、v0.9.0 的图标 / 推荐标签 / 发送键修复。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 当前桌面 profile 以 `link:` 方式指向本仓库：client 半边的改动会被 HMR 热替换；宿主半边的启动前奏注入需要插件行重新挂载（或在「插件」页停用/启用一次），之后刷新页面即生效。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
 ![hero](shots/hero-desktop.png)
+
+## v0.9.3：macOS 应用图标替换器（App 管理授权，无需退出 DSH）
+
+macOS 会拦截对其它应用包的写入；把替换器 applet 加入「系统设置 → 隐私与安全性 → App 管理（App Management）」的允许列表后，就可以在 DSH 运行中直接替换图标（本机实测：`icon.icns` md5 `9260bae121fd01f3261200d19a4c055e`，`icon.png` 同步替换，Dock 已刷新）。
+
+```bash
+# 生成并打开替换器（首次会请求「允许修改其他 App」）
+tools/build-macos-app-icon-fixer.sh
+```
+
+替换器逻辑：把 `assets/app-icon/AppIcon.icns` / `icon-1024.png` 复制到 `/Applications/DeepSeek Harness.app/Contents/Resources/icon.icns` 与 `icon.png`，`touch` 应用包、`lsregister -f` 刷新 LaunchServices、`killall Dock`；官方图标备份在 `~/.dsh-theme-admech/app-icon-backup/`。
+
+- 如果替换后 Dock 还是旧图标：退出并重新打开一次 DSH 即可（图标文件已经替换好，无需再授权）；
+- 还原官方图标：`tools/install-macos-app-icon.sh restore`，或把备份目录里的两个文件手动拖回 Resources；
+- DSH 更新会重置图标，更新后重新运行替换器一次即可。
+
+![app icon](shots/v090-app-icon-1024.png)
 
 ## v0.9.2：移除输入框内的思考程度进度条
 
@@ -52,6 +69,7 @@
 
 ![hint duplicate before](shots/v091-hint-duplicate-before.png)
 ![hint fixed](shots/v091-hint-fixed.png)
+
 ## v0.9.0：DSH 应用图标 + 两处状态配色修复
 
 ### 1. macOS 应用图标：DSH 换成机械神教徽记
@@ -62,17 +80,15 @@
 
 生成：`python3 tools/build-macos-app-icon.py`（Pillow + `iconutil`），产物在 `assets/app-icon/`：`AppIcon.icns`、`icon-1024.png`、`icon-512.png`、`icon-256.png`。
 
-安装 / 还原（需要一次管理员授权）：
+安装 / 还原（推荐方式，走「App 管理」授权，无需退出 DSH）：
 
 ```bash
-# 方式一：Finder 里双击 tools/install-macos-app-icon.command
-# 方式二：终端执行
-tools/install-macos-app-icon.sh install
-tools/install-macos-app-icon.sh restore   # 还原官方图标
+tools/build-macos-app-icon-fixer.sh   # 生成并打开替换器；首次允许它「修改其他 App」
 tools/install-macos-app-icon.sh status    # 查看当前状态
+tools/install-macos-app-icon.sh restore   # 还原官方图标
 ```
 
-说明：**必须先完全退出 DSH（Cmd+Q）再执行安装**——macOS 会拒绝修改正在运行的应用包（即使 root / installer 也一样，会报 `Operation not permitted`）。安装器会先把原始图标备份到 `~/.dsh-theme-admech/app-icon-backup/`，替换 `icon.icns` / `icon.png`，再刷新 Dock；重新打开 DSH 后 Dock/Finder 即显示主题图标。DSH 更新会恢复官方图标，更新后重跑 `install` 即可。资源替换会让应用包的 `codesign` 校验失效（本地一般仍可正常启动，若异常执行 `restore`）。Finder 手动替换包：`macos-app-icon-drop/`（双击打开后拖入 Resources 亦可）。
+说明：macOS 会拦截对正在运行的应用包的写入（直接 `cp` / root / `installer` 都会报 `Operation not permitted`）。解决办法是在「系统设置 → 隐私与安全性 → App 管理」中允许负责替换的 applet（`tools/build-macos-app-icon-fixer.sh` 生成的 `AdmechIconFixer.app`，或 Terminal）。授权后即可在 DSH 运行中直接替换（v0.9.3 实测通过）。安装器会把原始图标备份到 `~/.dsh-theme-admech/app-icon-backup/`，替换 `icon.icns` / `icon.png`，刷新 LaunchServices 与 Dock。若 Dock 仍显示旧图标，退出重开一次 DSH；DSH 更新会恢复官方图标，更新后重新运行替换器即可。资源替换会让应用包的 `codesign` 校验失效（本地正常启动不受影响，需要时执行 `restore`）。Finder 手动替换包：`macos-app-icon-drop/`（双击打开后拖入 Resources 亦可）。
 
 ### 2. 问题卡片：推荐标签「推荐」文字不可见
 

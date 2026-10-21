@@ -1,7 +1,7 @@
 {
   "name": "dsh-theme-admech",
-  "version": "0.9.2",
-  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.9.2 removes the always-visible cogitation-depth progress bar from the composer (reasoning effort stays adjustable through the discrete slider in the model menu) and makes placeholder hiding deterministic for layout audits. v0.9.1: themed expanded command-row icons. v0.9.0: themed macOS application icon (install/restore scripts), readable recommendation badge, Mars-red primary button in queue/steer/stop states. v0.8.0: one-piece boot prelude takeover, machine-spirit telemetry rail, reasoning slider. v0.7.x: Windows fixes, DPI-aware hairlines. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
+  "version": "0.9.3",
+  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.9.3 adds a self-contained macOS app-icon fixer applet: once allowed under App Management it replaces the bundle icon in place (verified on this machine), keeping the v0.9.2 removals. v0.9.2 removed the composer cogitation gauge. v0.9.1: themed expanded command-row icons. v0.9.0: themed macOS app icon, readable recommendation badge, Mars-red primary button in queue/steer/stop states. v0.8.0: boot prelude, telemetry rail, reasoning slider. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
