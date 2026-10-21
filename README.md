@@ -1,11 +1,50 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.7.18）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.8.0）
 
-> **状态：v0.7.18。修复 Windows 上「查询用量 / 充值」内嵌 Platform 页黑屏，并修复底部速率/用量/上下文统计面板无法打开。macOS 行为不变。**
+> **状态：v0.8.0。启动画面由套件完整接管（原生 HARNESS 加载屏不再出现，启动前奏 → 点火序列一段式衔接）；底部速率 / 命中率 / 上下文改为机魂遥测仪表；思考程度改为滑块调整，并在输入框内常驻一条思考程度进度条。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
-> 尚未安装到你的日常桌面 profile（桌面 profile 由 Electron 独占写入，需你在「插件」页点一次安装）。
+> 当前桌面 profile 以 `link:` 方式指向本仓库：client 半边的改动会被 HMR 热替换；宿主半边的启动前奏注入需要插件行重新挂载（或在「插件」页停用/启用一次），之后刷新页面即生效。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
 ![hero](shots/hero-desktop.png)
+
+## v0.8.0：一段式启动 + 机魂遥测条 + 思考程度滑块
+
+### 1. 启动序列：只保留套件的点火动画
+
+- 宿主半边（`lib/index.js`）通过 `webserver/index-inject` 向 index 注入启动前奏：暗色大教堂背景 + 齿轮-骷髅徽记 + 「铸造圣殿」标题 + 黄铜进度轨 + 实时百分比；前奏背景由 `/theme-admech/forge-cathedral.svg` 路由提供，并缓存一天；
+- 同一份注入会把原生 `HARNESS / Loading plugins…` 启动屏隐藏（CSS `:has` + 注入脚本双保险），客户端未加载或加载失败时注入脚本自动撤掉前奏，绝不遮住原生错误页；
+- 客户端 `showSplash()` 检测到前奏后原地接管：加 `is-continue` 关闭淡入、读取前奏进度并折算进启动计时，点火序列从当前百分比续播，随后无缝回到界面；
+- `prefers-reduced-motion` 时保留静态前奏直到界面挂载；自动化用的 `#admech-splash=0` 会立即移除前奏并直接进入界面。
+
+![startup prelude](shots/v080-startup-prelude.png)
+![startup splash](shots/v080-startup-splash.png)
+
+### 2. 底部机魂遥测条：速率 / 命中率 / 上下文
+
+- 三个原生统计按钮重做成黄铜仪表：拉丁文 + 中文小标题（RAPIDITAS · 速率 / CACHE · 命中率 / MEMORIA · 上下文）、等宽数字读数、底部 2px 分段增益条；速率条随 tok/s 变化，命中率 / 上下文按阈值转为警戒黄 / 火星红，运行中速度图标呼吸；
+- 会话统计、Token 用量、本轮用量、上下文面板统一为铁 + 黄铜仪器面板（标题细线、数据行、上下文分段色带与菱形图例）；
+- 只写 `data-*` 与自定义属性，不向 React 节点插入 DOM，保持宿主 reconcile 安全。
+
+![telemetry](shots/v080-telemetry.png)
+![usage popover](shots/v080-usage-popover.png)
+![context popover](shots/v080-context-popover.png)
+
+### 3. 思考程度：滑块调整 + 输入框内进度条
+
+- 模型菜单里的「推理等级」钻取列表改为横向离散滑块：Off / Low / High / Max 四个菱形档位落在黄铜轨道上，可用鼠标拖动、点击档位、`←` `→` / Home / End 调整；提交仍走原生 `menuitemradio` 按钮，键盘与读屏行为不变；
+- 输入框内部（模型控件左侧）常驻「思考程度」进度条：显示当前档位名、按档位填充黄铜 → 磷光绿进度，选择/拖拽时实时更新；
+- 模型与推理等级菜单、模型列表也套用仪器面板样式；移动端自动隐藏输入框内进度条，滑块保持单行可拖。
+
+![effort slider](shots/v080-effort-slider.png)
+![effort drag](shots/v080-effort-drag.png)
+![mobile](shots/v080-mobile.png)
+
+验证：
+
+- 真机启动时序：prelude 50ms 出现，原生 boot 屏 `display:none`，568ms 客户端点火以 `is-continue` 无缝接管，全程只有一段套件动画；
+- `layout_audit`（真实渲染页，隔离 profile）：1440×900 + 390×844 **PASS，0 errors**（`.layout-guard/runs/20261021-091023-su9w-audit`）；
+- 会话态快照审计（遥测条 / 模型菜单 / 滑块 / 用量与上下文面板 / 移动端）：**PASS，0 errors**（`.layout-guard/runs/20261021-091038-kovh-audit` 等）；
+- `layout_assert` 项目不变量全部 **PASS**：遥测条位于输入框下方且不越界、三仪表同排、输入框内进度条显示「思考程度 · Max」、滑块 4 档同排且填充到 Max、移动端进度条隐藏（`.layout-guard/runs/20261021-091144-vdk4-assert` 等）。
 
 ## v0.4 重点
 

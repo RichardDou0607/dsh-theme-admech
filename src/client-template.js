@@ -503,7 +503,7 @@ window.__ModuleLoader__.load({
 		// transition can then crash with removeChild / slot entry errors. Paint the
 		// Forge-Cathedral glyph as a CSS mask over the untouched SVG box instead.
 		function clearAdmechAttributes() {
-			var marked = document.querySelectorAll("[data-admech], [data-admech-icon], [data-admech-brand], [data-admech-active], [data-admech-hero-mark], [data-admech-placeholder], [data-admech-ph]");
+			var marked = document.querySelectorAll("[data-admech], [data-admech-icon], [data-admech-brand], [data-admech-active], [data-admech-hero-mark], [data-admech-placeholder], [data-admech-ph], [data-admech-caption], [data-admech-effort-label], [data-admech-effort-state], [data-admech-effort-menu], [data-admech-effort-count], [data-admech-level], [data-admech-preview]");
 			for (var i = 0; i < marked.length; i++) {
 				var el = marked[i];
 				var names = [];
@@ -762,6 +762,371 @@ window.__ModuleLoader__.load({
 			} catch (e) { /* ignore */ }
 		}
 
+
+		/* ------------------------------------------------------------------ */
+		/* Composer instruments: telemetry rail + cogitation depth              */
+		/* ------------------------------------------------------------------ */
+
+		// The composer dock exposes three readouts: turn/step + tok/s, token
+		// usage + cache hit, and context consumption. They are React-owned
+		// buttons; the theme never inserts nodes into them. JavaScript only
+		// mirrors the parsed numbers onto data attributes / custom properties,
+		// and the stylesheet paints the brass instrument rail.
+		var TELEMETRY_CAPTIONS = {
+			activity: "RAPIDITAS · 速率",
+			usage: "CACHE · 命中率",
+			context: "MEMORIA · 上下文"
+		};
+
+		function parsePercentValue(text) {
+			var match = /(\d{1,3})\s*%/.exec(String(text || ""));
+			if (!match) return -1;
+			var value = parseInt(match[1], 10);
+			if (!isFinite(value)) return -1;
+			return Math.max(0, Math.min(100, value));
+		}
+
+		function signalFor(percent) {
+			if (percent < 0) percent = 0;
+			if (percent >= 85) return "#c2372b";
+			if (percent >= 65) return "#e0a33a";
+			return "#7cffa0";
+		}
+
+		function decorateComposerTelemetry() {
+			var dock = document.querySelector("[data-composer-dock]");
+			if (!dock) return;
+			var activity = dock.querySelector("[data-composer-stat=\"activity\"]");
+			var usage = dock.querySelector("[data-composer-stat=\"usage\"]");
+			var contextButton = dock.querySelector("button[aria-label^=\"上下文已用\"], button[aria-label^=\"Context used\"]");
+			var contextRoot = contextButton ? contextButton.parentElement : null;
+			var running = !!document.querySelector("[data-composer-card] button[aria-label=\"停止生成\"], [data-composer-card] button[aria-label=\"Stop generating\"]");
+
+			if (activity) {
+				var activityButton = activity.querySelector("button");
+				if (activityButton) {
+					activityButton.setAttribute("data-admech-caption", TELEMETRY_CAPTIONS.activity);
+					var activityLabel = activityButton.getAttribute("aria-label") || "";
+					var tpsMatch = /([\d.,]+)\s*tok\/s/.exec(activityLabel);
+					var tps = tpsMatch ? parseFloat(tpsMatch[1].replace(/,/g, "")) : -1;
+					activity.setAttribute("data-admech-active", running ? "true" : "false");
+					activity.setAttribute("data-admech-level", running ? "live" : "idle");
+					if (isFinite(tps) && tps >= 0) {
+						var ratio = Math.max(0.08, Math.min(1, Math.log10(1 + tps) / 3));
+						activity.style.setProperty("--admech-pct", Math.round(ratio * 100) + "%");
+						activity.style.setProperty("--admech-signal", running ? "#7cffa0" : "#c9a15a");
+					}
+				}
+			}
+
+			if (usage) {
+				var usageButton = usage.querySelector("button");
+				if (usageButton) {
+					usageButton.setAttribute("data-admech-caption", TELEMETRY_CAPTIONS.usage);
+					var usageText = (usageButton.getAttribute("aria-label") || "") + " " + (usageButton.textContent || "");
+					var hit = parsePercentValue(usageText);
+					usage.style.setProperty("--admech-pct", (hit < 0 ? 0 : hit) + "%");
+					usage.style.setProperty("--admech-signal", hit < 0 ? "#c9a15a" : (hit >= 80 ? "#7cffa0" : (hit >= 40 ? "#e0a33a" : "#c2372b")));
+					usage.setAttribute("data-admech-level", hit >= 80 ? "good" : (hit >= 40 ? "warn" : "danger"));
+				}
+			}
+
+			if (contextRoot && contextButton) {
+				contextButton.setAttribute("data-admech-caption", TELEMETRY_CAPTIONS.context);
+				var contextText = (contextButton.getAttribute("aria-label") || "") + " " + (contextButton.textContent || "");
+				var contextPercent = parsePercentValue(contextText);
+				contextRoot.style.setProperty("--admech-pct", (contextPercent < 0 ? 0 : contextPercent) + "%");
+				contextRoot.style.setProperty("--admech-signal", signalFor(contextPercent));
+				contextRoot.setAttribute("data-admech-level", contextPercent >= 85 ? "danger" : (contextPercent >= 65 ? "warn" : "good"));
+			}
+		}
+
+		// Reasoning effort is a model-selection row. The theme turns the drill-in
+		// list into a discrete slider and mirrors the current level into a thin
+		// progress bar under the model control (inside the composer).
+		var EFFORT_RANK = {
+			off: 0,
+			none: 0,
+			disabled: 0,
+			minimal: 0.16,
+			min: 0.16,
+			low: 0.33,
+			medium: 0.5,
+			med: 0.5,
+			high: 0.72,
+			max: 1,
+			maximum: 1
+		};
+
+		function readEffortLabel(trigger) {
+			if (!trigger) return "";
+			var label = trigger.getAttribute("aria-label") || "";
+			var match = /推理等级\s*([^\s,，。]+)/.exec(label);
+			if (!match) match = /reasoning level\s+([^\s,.;]+)/i.exec(label);
+			if (match) return match[1].replace(/[.。]$/, "").trim();
+			var title = trigger.getAttribute("title") || "";
+			var parts = title.split("·");
+			if (parts.length > 1) return parts[parts.length - 1].trim();
+			return "";
+		}
+
+		function effortRatio(label) {
+			var key = String(label || "").toLowerCase().trim();
+			if (!key) return -1;
+			if (EFFORT_RANK[key] !== undefined) return EFFORT_RANK[key];
+			if (key.indexOf("off") === 0 || key.indexOf("关闭") === 0 || key.indexOf("关") === 0) return 0;
+			if (key.indexOf("max") === 0 || key.indexOf("最高") === 0 || key.indexOf("极") === 0) return 1;
+			if (key.indexOf("high") === 0 || key.indexOf("高") === 0) return 0.72;
+			if (key.indexOf("med") === 0 || key.indexOf("中") === 0) return 0.5;
+			if (key.indexOf("low") === 0 || key.indexOf("低") === 0 || key.indexOf("min") === 0) return 0.33;
+			return 0.6;
+		}
+
+		function paintEffortGauge(root, label, ratio) {
+			if (!root) return;
+			try {
+				root.setAttribute("data-admech-effort-label", label || "");
+				if (!label || ratio < 0) {
+					root.setAttribute("data-admech-effort-state", "none");
+					root.style.setProperty("--admech-effort-ratio", "0");
+					root.style.setProperty("--admech-effort-fill", "0%");
+					return;
+				}
+				root.setAttribute("data-admech-effort-state", "ok");
+				root.style.setProperty("--admech-effort-label", label);
+				root.style.setProperty("--admech-effort-ratio", String(ratio));
+				root.style.setProperty("--admech-effort-fill", Math.round(ratio * 100) + "%");
+				root.style.setProperty("--admech-effort-color", ratio <= 0 ? "rgba(201, 161, 90, 0.55)" : (ratio >= 0.99 ? "#e3c184" : "#7cffa0"));
+			} catch (e) { /* best effort */ }
+		}
+
+		function modelRoots() {
+			var list = document.querySelectorAll("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
+			return list;
+		}
+
+		function ensureModelRootAffordance(root) {
+			if (!root || root.__admechEffortBound) return;
+			root.__admechEffortBound = true;
+			// The cogitation gauge is a pseudo-element of the root that overflows
+			// to the left. Clicks on it report the root itself; open the native
+			// model menu instead of swallowing them.
+			root.addEventListener("click", function (event) {
+				if (event.target !== root) return;
+				var trigger = root.querySelector("button");
+				if (trigger) { event.preventDefault(); trigger.click(); }
+			});
+		}
+
+		function decorateEffortControl() {
+			var roots = modelRoots();
+			for (var i = 0; i < roots.length; i++) {
+				var root = roots[i];
+				var trigger = root.querySelector("button");
+				var label = readEffortLabel(trigger);
+				paintEffortGauge(root, label, effortRatio(label));
+				if (label) ensureModelRootAffordance(root);
+			}
+			var menus = document.querySelectorAll("[role=\"menu\"].cl2Rlq_menu");
+			for (var m = 0; m < menus.length; m++) enhanceEffortMenu(menus[m]);
+		}
+
+		function effortOptions(menu) {
+			var out = [];
+			var children = menu.children;
+			for (var i = 0; i < children.length; i++) {
+				var node = children[i];
+				if (!node || node.nodeType !== 1) continue;
+				if (node.getAttribute("role") !== "menuitemradio") continue;
+				var cls = typeof node.className === "string" ? node.className : "";
+				if (cls.indexOf("cl2Rlq_option") === -1) continue;
+				if (cls.indexOf("cl2Rlq_modelOption") !== -1) continue;
+				out.push(node);
+			}
+			return out;
+		}
+
+		function effortSelectedIndex(options) {
+			for (var i = 0; i < options.length; i++) {
+				if (options[i].getAttribute("aria-checked") === "true") return i;
+			}
+			return -1;
+		}
+
+		function effortPreviewClear(options) {
+			for (var i = 0; i < options.length; i++) {
+				if (options[i].getAttribute("data-admech-preview") !== null) options[i].removeAttribute("data-admech-preview");
+			}
+		}
+
+		function effortPreviewSet(options, index) {
+			for (var i = 0; i < options.length; i++) {
+				var flag = i === index ? "true" : "false";
+				if (options[i].getAttribute("data-admech-preview") !== flag) options[i].setAttribute("data-admech-preview", flag);
+			}
+		}
+
+		function effortMenuMetrics(menu, options) {
+			var menuRect = menu.getBoundingClientRect();
+			var style = window.getComputedStyle ? window.getComputedStyle(menu) : null;
+			var borderLeft = style ? (parseFloat(style.borderLeftWidth) || 0) : 0;
+			var borderTop = style ? (parseFloat(style.borderTopWidth) || 0) : 0;
+			var centers = [];
+			for (var i = 0; i < options.length; i++) {
+				var rect = options[i].getBoundingClientRect();
+				centers.push(rect.left + rect.width / 2);
+			}
+			var firstRect = options[0].getBoundingClientRect();
+			var stopOffset = Math.max(7, Math.min(18, Math.round(firstRect.height * 0.3)));
+			return {
+				left: centers[0] - (menuRect.left + borderLeft),
+				width: centers[centers.length - 1] - centers[0],
+				stopTop: stopOffset,
+				trackTop: (firstRect.top + stopOffset) - (menuRect.top + borderTop),
+				centers: centers
+			};
+		}
+
+		function paintEffortMenu(menu, options, index) {
+			var metrics = effortMenuMetrics(menu, options);
+			if (!isFinite(metrics.width) || metrics.width <= 0) return;
+			var count = options.length;
+			var ratio = count > 1 ? Math.max(0, Math.min(1, index / (count - 1))) : 0;
+			menu.style.setProperty("--admech-track-left", metrics.left.toFixed(1) + "px");
+			menu.style.setProperty("--admech-track-width", metrics.width.toFixed(1) + "px");
+			menu.style.setProperty("--admech-stop-top", metrics.stopTop + "px");
+			menu.style.setProperty("--admech-track-top", metrics.trackTop.toFixed(1) + "px");
+			menu.style.setProperty("--admech-effort-fill", (ratio * metrics.width).toFixed(1) + "px");
+			menu.style.setProperty("--admech-effort-ratio", String(ratio));
+			var root = document.querySelector("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
+			if (root) {
+				var label = options[index] ? (options[index].textContent || "").trim() : "";
+				root.style.setProperty("--admech-effort-ratio", String(ratio));
+				root.style.setProperty("--admech-effort-fill", Math.round(ratio * 100) + "%");
+				root.style.setProperty("--admech-effort-color", ratio <= 0 ? "rgba(201, 161, 90, 0.55)" : (ratio >= 0.99 ? "#e3c184" : "#7cffa0"));
+				if (label) root.style.setProperty("--admech-effort-label", label);
+			}
+		}
+
+		function effortIndexAt(options, clientX) {
+			var best = 0;
+			var bestDistance = Infinity;
+			for (var i = 0; i < options.length; i++) {
+				var rect = options[i].getBoundingClientRect();
+				var center = rect.left + rect.width / 2;
+				var distance = Math.abs(clientX - center);
+				if (distance < bestDistance) { bestDistance = distance; best = i; }
+			}
+			return best;
+		}
+
+		var effortDrag = null;
+
+		function bindEffortMenu(menu) {
+			if (menu.__admechEffortBound) return;
+			menu.__admechEffortBound = true;
+
+			menu.addEventListener("pointerdown", function (event) {
+				if (event.button !== undefined && event.button !== 0) return;
+				var options = effortOptions(menu);
+				if (options.length < 2) return;
+				try { menu.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+				effortDrag = { menu: menu, options: options, startX: event.clientX, pointerId: event.pointerId, index: effortSelectedIndex(options), moved: false };
+				event.preventDefault();
+			});
+
+			menu.addEventListener("pointermove", function (event) {
+				if (!effortDrag || effortDrag.menu !== menu) return;
+				if (Math.abs(event.clientX - effortDrag.startX) > 4) effortDrag.moved = true;
+				if (!effortDrag.moved) return;
+				var index = effortIndexAt(effortDrag.options, event.clientX);
+				if (index === effortDrag.index) return;
+				effortDrag.index = index;
+				effortPreviewSet(effortDrag.options, index);
+				paintEffortMenu(menu, effortDrag.options, index);
+				event.preventDefault();
+			});
+
+			function finish(event, cancelled) {
+				if (!effortDrag || effortDrag.menu !== menu) return;
+				var drag = effortDrag;
+				effortDrag = null;
+				try { menu.releasePointerCapture(drag.pointerId); } catch (e) { /* ignore */ }
+				effortPreviewClear(drag.options);
+				var index = -1;
+				if (!cancelled) {
+					if (drag.moved) {
+						index = effortIndexAt(drag.options, event.clientX);
+					} else {
+						var hit = document.elementFromPoint(event.clientX, event.clientY);
+						var option = hit && hit.closest ? hit.closest(".cl2Rlq_option") : null;
+						if (option) index = drag.options.indexOf(option);
+					}
+				}
+				var selected = effortSelectedIndex(drag.options);
+				paintEffortMenu(menu, drag.options, selected < 0 ? 0 : selected);
+				var target = index >= 0 ? drag.options[index] : null;
+				if (target) {
+					setTimeout(function () { try { target.click(); } catch (e) { /* ignore */ } }, 0);
+				}
+			}
+
+			menu.addEventListener("pointerup", function (event) { finish(event, false); });
+			menu.addEventListener("pointercancel", function (event) { finish(event, true); });
+
+			menu.addEventListener("keydown", function (event) {
+				var key = event.key;
+				if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
+				var options = effortOptions(menu);
+				if (options.length < 2) return;
+				var current = effortSelectedIndex(options);
+				if (current < 0) current = 0;
+				var next = current;
+				if (key === "ArrowLeft") next = Math.max(0, current - 1);
+				else if (key === "ArrowRight") next = Math.min(options.length - 1, current + 1);
+				else if (key === "Home") next = 0;
+				else if (key === "End") next = options.length - 1;
+				event.preventDefault();
+				event.stopPropagation();
+				if (next !== current) options[next].click();
+				else { try { options[next].focus(); } catch (e) { /* ignore */ } }
+			}, true);
+		}
+
+		function enhanceEffortMenu(menu) {
+			if (!menu || !menu.classList) return;
+			var options = effortOptions(menu);
+			if (options.length < 2) return;
+			var names = [];
+			for (var i = 0; i < options.length; i++) names.push((options[i].textContent || "").trim());
+			var signature = options.length + ":" + names.join("|");
+			if (menu.__admechEffortSignature === signature && menu.classList.contains("admech-effort-slider")) {
+				var selected = effortSelectedIndex(options);
+				paintEffortMenu(menu, options, selected < 0 ? 0 : selected);
+				return;
+			}
+			menu.__admechEffortSignature = signature;
+			menu.classList.add("admech-effort-slider");
+			menu.setAttribute("data-admech-effort-menu", "true");
+			menu.setAttribute("data-admech-effort-count", String(options.length));
+			bindEffortMenu(menu);
+			var current = effortSelectedIndex(options);
+			paintEffortMenu(menu, options, current < 0 ? 0 : current);
+		}
+
+		function cleanupComposerInstruments() {
+			var menus = document.querySelectorAll(".admech-effort-slider");
+			for (var i = 0; i < menus.length; i++) menus[i].classList.remove("admech-effort-slider");
+			var styled = document.querySelectorAll("[style*=\"--admech-\"]");
+			var props = ["--admech-pct", "--admech-signal", "--admech-effort-ratio", "--admech-effort-fill", "--admech-effort-color", "--admech-effort-label", "--admech-track-left", "--admech-track-width", "--admech-stop-top", "--admech-track-top"];
+			for (var s = 0; s < styled.length; s++) {
+				for (var p = 0; p < props.length; p++) {
+					try { styled[s].style.removeProperty(props[p]); } catch (e) { /* ignore */ }
+				}
+			}
+			effortDrag = null;
+		}
+
 		/* ------------------------------------------------------------------ */
 		/* Tagging + background vars                                            */
 		/* ------------------------------------------------------------------ */
@@ -863,16 +1228,19 @@ window.__ModuleLoader__.load({
 				// Keep the native placeholder text for the app, but render our own copy
 				// through CSS so its invisible layout box does not sit over the input
 				// (and tripped the layout audit's overlap rule in some states).
-				var placeholders = document.querySelectorAll("[data-composer-placeholder]");
+				var placeholders = document.querySelectorAll("[data-composer-placeholder], [data-composer-card] [class*=\"placeholder\"]");
 				for (var pi = 0; pi < placeholders.length; pi++) {
 					var ph = placeholders[pi];
 					var phText = ph.textContent || "";
-					if (phText && ph.getAttribute("data-admech-ph") !== phText) {
+					if (!phText.trim()) continue;
+					if (ph.getAttribute("data-admech-ph") !== phText) {
 						ph.setAttribute("data-admech-ph", phText);
 					}
 					ph.setAttribute("data-admech-placeholder", "true");
 				}
 				replaceAllIcons();
+				decorateComposerTelemetry();
+				decorateEffortControl();
 			} catch (e) { /* best effort tagging */ }
 		}
 
@@ -925,19 +1293,68 @@ window.__ModuleLoader__.load({
 		function showSplash() {
 			if (SPLASH_SHOWN) return;
 			SPLASH_SHOWN = true;
+			// The host half injects a boot prelude that covers the native
+			// "HARNESS / Loading plugins…" screen from the first paint. The splash
+			// takes it over in place and carries its progress, so opening DSH shows
+			// one continuous kit ignition sequence instead of two animations.
+			var prelude = null;
+			try { prelude = document.getElementById("admech-boot-prelude"); } catch (e) { prelude = null; }
+			function removeBootPrelude() {
+				if (prelude) {
+					try { if (prelude.parentNode) prelude.parentNode.removeChild(prelude); } catch (e) { /* ignore */ }
+					prelude = null;
+				}
+				try {
+					if (window.__admechBootPrelude && typeof window.__admechBootPrelude.remove === "function") window.__admechBootPrelude.remove(0);
+				} catch (e) { /* ignore */ }
+			}
+			function carriedProgress() {
+				if (!prelude) return 0;
+				try {
+					var rail = prelude.querySelector(".rail");
+					var fill = prelude.querySelector(".rail i");
+					if (!rail || !fill) return 0;
+					var railWidth = rail.getBoundingClientRect().width;
+					var fillWidth = fill.getBoundingClientRect().width;
+					if (!(railWidth > 0)) return 0;
+					return Math.max(0, Math.min(1, fillWidth / railWidth));
+				} catch (e) { return 0; }
+			}
 			try {
 				var splashFlag = String(location.search || "") + " " + String(location.hash || "");
-				if (splashFlag.indexOf("admech-splash=0") !== -1) return;
+				if (splashFlag.indexOf("admech-splash=0") !== -1) { removeBootPrelude(); return; }
 				// The account/Platform WebContentsView is a separate native surface.
 				// Never let the ignition splash sit over it.
 				var splashPath = String(location.pathname || "") + " " + splashFlag;
-				if (/(?:platform|account|billing|top-?up|usage|checkout|pay)/i.test(splashPath)) return;
+				if (/(?:platform|account|billing|top-?up|usage|checkout|pay)/i.test(splashPath)) { removeBootPrelude(); return; }
 			} catch (e) { /* ignore */ }
 			var reduced = false;
 			try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
 			// Windows "Animation effects: off" maps to this query. A three-second
 			// full-screen overlay is exactly what the setting asks us not to do.
-			if (reduced) return;
+			if (reduced) {
+				// Reduced motion: the splash is skipped, but the themed prelude is
+				// already on screen. Keep it until the application has mounted so the
+				// native boot screen never flashes back in behind it.
+				var preludeTries = 0;
+				var preludeWatch = setInterval(function () {
+					preludeTries++;
+					if (document.querySelector("[data-composer-card], [data-slot=\"sidebar\"], [data-slot=\"main\"]") || preludeTries > 50) {
+						clearInterval(preludeWatch);
+						removeBootPrelude();
+					}
+				}, 200);
+				return;
+			}
+
+			try {
+				if (prelude) {
+					// Do not let the shell's own boot spinner paint under the hand-off.
+					var bootEls = document.querySelectorAll("[data-dsh-boot]");
+					for (var be = 0; be < bootEls.length; be++) bootEls[be].style.display = "none";
+				}
+			} catch (e) { /* ignore */ }
+			var carried = carriedProgress();
 
 			var logs = [
 				"NOOSPHERE LINK ................ ESTABLISHED",
@@ -959,7 +1376,7 @@ window.__ModuleLoader__.load({
 			}
 
 			var wrap = document.createElement("div");
-			wrap.className = "admech-splash" + (reduced ? " is-reduced" : "");
+			wrap.className = "admech-splash" + (reduced ? " is-reduced" : "") + (prelude ? " is-continue" : "");
 			wrap.setAttribute("data-admech-splash", "true");
 			wrap.setAttribute("role", "status");
 			wrap.setAttribute("aria-label", "铸造圣殿启动");
@@ -979,11 +1396,17 @@ window.__ModuleLoader__.load({
 				+ '<div class="admech-splash-footer"><div>OMNISSIAH · DEUS MACHINA · EX FERRO · EX IGNE · IN TENEBRIS LUX AETERNA</div><div class="tiny">UNOFFICIAL FAN WORK · FORGE-CATHEDRAL v0.5.0</div></div>';
 			document.body.appendChild(wrap);
 			SPLASH_ACTIVE = true;
+			if (prelude) removeBootPrelude();
 
 			var fill = wrap.querySelector(".rail i");
 			var pctEl = wrap.querySelector(".pct");
-			var start = (window.performance && performance.now) ? performance.now() : Date.now();
 			var DUR = reduced ? 300 : 2400;
+			// Continue the ignition progress the prelude already displayed.
+			var start = ((window.performance && performance.now) ? performance.now() : Date.now()) - carried * DUR;
+			if (carried > 0) {
+				if (fill) fill.style.width = (carried * 100) + "%";
+				if (pctEl) pctEl.textContent = ("00" + Math.floor(carried * 100)).slice(-3) + "%";
+			}
 			var raf = null;
 			var removeTimer = null;
 			var outTimer = null;
@@ -1044,7 +1467,7 @@ window.__ModuleLoader__.load({
 				removeTimer = setTimeout(dismiss, 650);
 			} else {
 				raf = window.requestAnimationFrame(tick);
-				removeTimer = setTimeout(dismiss, 3000);
+				removeTimer = setTimeout(dismiss, Math.max(900, 3000 - carried * DUR));
 			}
 
 			SPLASH_CLEANUP = remove;
@@ -1099,7 +1522,17 @@ window.__ModuleLoader__.load({
 							if (SPLASH_ACTIVE) return;
 							tagProcessIcons();
 							var now = (window.performance && performance.now) ? performance.now() : Date.now();
-							if (now - lastScan < 40) return;
+							if (now - lastScan < 40) {
+								// A throttled batch can still carry a semantic change (model
+								// selection, reasoning level). Never drop those permanently:
+								// coalesce them into one later pass.
+								for (var q = 0; q < records.length; q++) {
+									if (records[q].type !== "attributes") continue;
+									var quick = records[q].attributeName;
+									if (quick === "aria-label" || quick === "class" || quick === "aria-busy" || quick === "data-process-activity" || quick === "data-variant" || quick === "data-tool") { schedule(); break; }
+								}
+								return;
+							}
 							for (var i = 0; i < records.length; i++) {
 								var rec = records[i];
 								if (rec.type === "childList") { lastScan = now; schedule(); return; }
@@ -1165,6 +1598,8 @@ window.__ModuleLoader__.load({
 					activate(false);
 					if (raf !== null) { try { cancelAnimationFrame(raf); } catch (e) { /* ignore */ } }
 					clearAdmechAttributes();
+					cleanupComposerInstruments();
+					try { if (window.__admechBootPrelude && typeof window.__admechBootPrelude.remove === "function") window.__admechBootPrelude.remove(0); } catch (e) { /* ignore */ }
 					clearOrnamentVars();
 					removeIconMaskStyle();
 					// forceDark() also pins the document color scheme and the body's dark
