@@ -499,6 +499,47 @@ window.__ModuleLoader__.load({
 			tools: "tools"
 		};
 
+		// Expanded process detail rows use a variant-keyed activity component
+		// (data-variant / data-sample) instead of the ToolRow data-tool markup.
+		// Without this map the leading glyph of e.g. an expanded "运行命令" row
+		// stays the native >_ terminal icon while every other row is themed.
+		var SAMPLE_VARIANT_ICONS = {
+			bash: "terminal",
+			shell: "terminal",
+			exec: "terminal",
+			commands: "terminal",
+			terminal: "terminal",
+			read: "process_read",
+			readImage: "process_read",
+			read_image: "process_read",
+			write: "process_edit",
+			edit: "process_edit",
+			apply_patch: "process_edit",
+			search: "search",
+			grep: "search",
+			glob: "search",
+			web: "process_web",
+			webFetch: "process_web",
+			web_search: "search",
+			code: "process_code",
+			plan: "process_plan",
+			subagents: "trinity",
+			questions: "vox",
+			tools: "tools",
+			think: "process_think"
+		};
+
+		function tagSampleVariantIcons() {
+			var rows = document.querySelectorAll("[data-variant][data-sample]");
+			for (var i = 0; i < rows.length; i++) {
+				var variant = rows[i].getAttribute("data-variant") || "";
+				var key = SAMPLE_VARIANT_ICONS[variant];
+				if (!key) continue;
+				var svg = rows[i].querySelector("[class*=\"iconIdle\"] svg, [class*=\"iconActive\"] svg, [class*=\"iconDone\"] svg, [class*=\"iconError\"] svg, [class*=\"iconWarning\"] svg");
+				if (svg) applyIcon(svg, key);
+			}
+		}
+
 		// React owns the native SVG trees. Never replace their children: a composer
 		// transition can then crash with removeChild / slot entry errors. Paint the
 		// Forge-Cathedral glyph as a CSS mask over the untouched SVG box instead.
@@ -606,6 +647,7 @@ window.__ModuleLoader__.load({
 			if (runningSvg && !runningSvg.getAttribute("data-admech-icon")) mark(runningSvg, "process_think");
 			var stopSvg = document.querySelector("[data-composer-card] button[aria-label=\"停止生成\"] svg");
 			if (stopSvg) mark(stopSvg, "process_pause");
+			tagSampleVariantIcons();
 		};
 
 		function fingerprint(svg) {
@@ -733,6 +775,10 @@ window.__ModuleLoader__.load({
 				var toolSvg = leadingWrap ? leadingWrap.querySelector("svg") : null;
 				if (toolSvg) applyIcon(toolSvg, toolKey);
 			}
+
+			// Expanded process rows with a variant/sample pair (notably 运行命令 / bash)
+			// use a different leading-icon host than ToolRow; theme them too.
+			tagSampleVariantIcons();
 
 			// "深度求索中" running status: replace the animated whale tail with a
 			// slowly turning cogitator eye. The native still SVG is reused as the mask
@@ -893,6 +939,7 @@ window.__ModuleLoader__.load({
 					return;
 				}
 				root.setAttribute("data-admech-effort-state", "ok");
+				root.setAttribute("title", "思考程度 · 点击进度条调整");
 				root.style.setProperty("--admech-effort-label", label);
 				root.style.setProperty("--admech-effort-ratio", String(ratio));
 				root.style.setProperty("--admech-effort-fill", Math.round(ratio * 100) + "%");
@@ -905,17 +952,94 @@ window.__ModuleLoader__.load({
 			return list;
 		}
 
+		var effortGaugeRequest = null;
+		var effortGaugeTimer = null;
+
+		function clearEffortGaugeRequest() {
+			effortGaugeRequest = null;
+			if (effortGaugeTimer) { clearTimeout(effortGaugeTimer); effortGaugeTimer = null; }
+		}
+
+		function requestEffortFromGauge(root) {
+			var trigger = root.querySelector("button");
+			if (!trigger) return;
+			// Mark the open as "from the gauge": decorateEffortControl then drives
+			// the native menu straight into 推理等级 and floats the same slider
+			// panel above the gauge instead of anchoring it to the model button.
+			effortGaugeRequest = { root: root, requestedAt: Date.now() };
+			if (effortGaugeTimer) clearTimeout(effortGaugeTimer);
+			effortGaugeTimer = setTimeout(clearEffortGaugeRequest, 2200);
+			trigger.click();
+		}
+
 		function ensureModelRootAffordance(root) {
 			if (!root || root.__admechEffortBound) return;
 			root.__admechEffortBound = true;
 			// The cogitation gauge is a pseudo-element of the root that overflows
-			// to the left. Clicks on it report the root itself; open the native
-			// model menu instead of swallowing them.
+			// to the left. Clicks on it report the root itself; open the very same
+			// reasoning slider the model menu uses, floating above the gauge.
 			root.addEventListener("click", function (event) {
 				if (event.target !== root) return;
-				var trigger = root.querySelector("button");
-				if (trigger) { event.preventDefault(); trigger.click(); }
+				event.preventDefault();
+				requestEffortFromGauge(root);
 			});
+		}
+
+		function autoDrillEffortMenu(menu) {
+			if (effortOptions(menu).length > 0) return;
+			var cells = menu.querySelectorAll(".cl2Rlq_cell");
+			if (!cells.length) return;
+			// The intermediate model/reasoning menu is only a vehicle: hide it while
+			// programmatically entering the reasoning drill-in.
+			menu.style.visibility = "hidden";
+			if (menu.__admechAutoDrilled) return;
+			menu.__admechAutoDrilled = true;
+			var target = cells[cells.length - 1];
+			for (var i = 0; i < cells.length; i++) {
+				if (/推理等级|reasoning/i.test(cells[i].textContent || "")) { target = cells[i]; break; }
+			}
+			setTimeout(function () {
+				try { target.click(); } catch (e) { /* ignore */ }
+				// The drill-in renders a fresh option list; run the scan immediately
+				// instead of waiting for the mutation throttle, then once more after
+				// React commits the list.
+				if (NOTIFY) { try { NOTIFY(); } catch (e) { /* ignore */ } }
+				setTimeout(function () { if (NOTIFY) { try { NOTIFY(); } catch (e) { /* ignore */ } } }, 80);
+			}, 0);
+			setTimeout(function () {
+				// Safety: never leave the intermediate menu invisible if the
+				// drill-in failed to materialise.
+				if (menu.isConnected && effortOptions(menu).length === 0) menu.style.visibility = "";
+			}, 500);
+		}
+
+		function positionEffortMenuAtGauge(menu) {
+			var root = effortGaugeRequest && effortGaugeRequest.root && effortGaugeRequest.root.isConnected
+				? effortGaugeRequest.root
+				: document.querySelector("[data-slot=\"conversation.input.model\"] .cl2Rlq_root");
+			if (!root) { menu.style.visibility = ""; return; }
+			menu.style.visibility = "hidden";
+			function apply() {
+				if (!menu.isConnected) return;
+				var rr = root.getBoundingClientRect();
+				var mr = menu.getBoundingClientRect();
+				var vw = window.innerWidth || document.documentElement.clientWidth;
+				var vh = window.innerHeight || document.documentElement.clientHeight;
+				// The gauge is a 152px-wide pseudo-element ending 12px left of the
+				// model control; centre the same slider panel above it.
+				var gaugeCenterX = rr.left - 12 - 76;
+				var left = Math.round(gaugeCenterX - mr.width / 2);
+				left = Math.max(8, Math.min(vw - mr.width - 8, left));
+				var top = Math.round(rr.top - mr.height - 14);
+				if (top < 8) top = Math.round(rr.bottom + 14);
+				menu.style.setProperty("left", left + "px", "important");
+				menu.style.setProperty("top", top + "px", "important");
+				menu.setAttribute("data-admech-effort-float", "true");
+				menu.style.visibility = "";
+			}
+			requestAnimationFrame(function () { apply(); requestAnimationFrame(apply); });
+			setTimeout(apply, 50);
+			setTimeout(apply, 160);
 		}
 
 		function decorateEffortControl() {
@@ -928,7 +1052,15 @@ window.__ModuleLoader__.load({
 				if (label) ensureModelRootAffordance(root);
 			}
 			var menus = document.querySelectorAll("[role=\"menu\"].cl2Rlq_menu");
-			for (var m = 0; m < menus.length; m++) enhanceEffortMenu(menus[m]);
+			for (var m = 0; m < menus.length; m++) {
+				var menu = menus[m];
+				if (effortGaugeRequest) autoDrillEffortMenu(menu);
+				enhanceEffortMenu(menu);
+				if (effortGaugeRequest && menu.classList.contains("admech-effort-slider")) {
+					positionEffortMenuAtGauge(menu);
+					clearEffortGaugeRequest();
+				}
+			}
 		}
 
 		function effortOptions(menu) {
@@ -1526,6 +1658,7 @@ window.__ModuleLoader__.load({
 								// A throttled batch can still carry a semantic change (model
 								// selection, reasoning level). Never drop those permanently:
 								// coalesce them into one later pass.
+								if (effortGaugeRequest) { schedule(); return; }
 								for (var q = 0; q < records.length; q++) {
 									if (records[q].type !== "attributes") continue;
 									var quick = records[q].attributeName;

@@ -1,7 +1,7 @@
 {
   "name": "dsh-theme-admech",
-  "version": "0.9.0",
-  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.9.0: themed macOS application icon (Dock/Finder install + restore scripts), readable recommendation badge in agent question cards, and a fix that keeps the composer primary button Mars-red in queue/steer/stop states. v0.8.0: one-piece boot prelude takeover, machine-spirit telemetry rail (speed / cache hit / context), reasoning-effort slider plus a cogitation-depth gauge inside the composer. v0.7.18 prevents the modal dialog frame from breaking composer popovers. v0.7.17 fixes the black embedded Usage page on Windows. v0.7.0: Windows 11 verification pass. v0.6.x: deliverable cards, Windows Platform view, icon fixes. v0.5.x: startup splash, process icons, composer removeChild fix. v0.4.2 icon restoration. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
+  "version": "0.9.1",
+  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.9.1: expanded process rows (e.g. 运行命令 / bash) now use the themed terminal glyph, and the composer cogitation gauge opens the very same reasoning slider in place (no detour through model settings). v0.9.0: themed macOS application icon (install/restore scripts), readable recommendation badge, Mars-red primary button in queue/steer/stop states. v0.8.0: one-piece boot prelude takeover, machine-spirit telemetry rail, reasoning slider + cogitation gauge. v0.7.x: Windows fixes, popover framing, DPI-aware hairlines. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

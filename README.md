@@ -1,12 +1,47 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.9.0）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.9.1）
 
-> **状态：v0.9.0。新增 macOS 应用图标（Dock / Finder 的 DSH 图标换成齿轮-骷髅，附一键安装/还原脚本）；修复问题卡片里「推荐」标签金底金字不可见；修复智能体运行中发送键变成纯金色圆点（排队/插话状态）。v0.8.0 的启动前奏、机魂遥测条与思考程度滑块保持。**
+> **状态：v0.9.1。修复展开过程明细后「运行命令」行仍显示原生 `>_` 图标；输入框里的思考程度进度条现在可以直接点击调整（复用与模型设置完全相同的滑块，不再需要打开模型菜单）。v0.9.0 的 macOS 应用图标、推荐标签与发送键修复保持。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 当前桌面 profile 以 `link:` 方式指向本仓库：client 半边的改动会被 HMR 热替换；宿主半边的启动前奏注入需要插件行重新挂载（或在「插件」页停用/启用一次），之后刷新页面即生效。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
 ![hero](shots/hero-desktop.png)
 
+## v0.9.1：展开后的运行命令图标 + 进度条直接改思考程度
+
+### 1. 展开过程明细后，「运行命令」仍是原生 `>_` 图标
+
+根因：展开后的过程明细行使用的是一套 `data-variant` + `data-sample` 的组件（`运行命令` / bash 行没有 `data-tool`），图标宿主是 `[class*="iconIdle"]`；主题此前的映射只看 `data-tool` / `data-process-activity` / `data-variant="think"`，所以这些行退回原生终端图标。
+
+修复：新增 variant → 图标映射（bash / read / write / edit / search / web / code / plan / …），并对 `iconIdle / iconActive / iconDone / iconError` 宿主统一打主题 glyph；运行中、完成、折叠与展开状态都会保持主题图标。
+
+![command icon](shots/v091-command-icon.png)
+
+### 2. 思考程度进度条可以直接改，不再需要打开模型设置
+
+- 输入框内的「思考程度」进度条现在可点击：悬停时黄铜高亮并出现 `▾` 提示；点击后原地弹出与模型设置里**完全相同**的离散滑块（同一套 DOM / 样式 / 拖拽与 ← → / Home / End 操作），浮在进度条正上方。
+- 选择或拖拽后立即提交，并同步更新进度条填充、档位文字与模型控件文案；点模型控件本身仍打开原来的模型 / 推理菜单。
+- 实现：进度条点击 → 程序化展开原生「推理等级」钻取 → 复用同一个 slider 面板浮动定位到进度条上方；中间菜单在定位前隐藏，避免闪烁。
+
+![gauge slider](shots/v091-gauge-slider.png)
+![gauge drag](shots/v091-gauge-drag.png)
+
+验证：
+
+- 真机交互：点击进度条后浮层 `data-admech-effort-float="true"`、位于进度条正上方且水平居中、4 个档位；拖拽 Max → High 后 aria / 进度条同步更新，再次点击进度条可恢复 Max；模型控件原菜单不受影响。
+- 展开命令行：`data-admech-icon="terminal"`，mask 与黄铜色生效。
+- `layout_audit` 1440×900 + 390×844 **PASS，0 errors**（`.layout-guard/runs/20261021-093454-dsg7-audit`）；`layout_assert`（进度条打开同一滑块、4 档、提交 High、恢复 Max）**PASS**（`.layout-guard/runs/20261021-093500-wkpc-assert`）。
+
+### 3.（回归修复）输入框提示文字重影
+
+现象：智能体运行中、有排队消息时，输入框提示「Cmd/Ctrl+Enter 插话发送全部排队消息」出现两层重影，第二行被裁切。
+
+根因：v0.9.0 为了让 web / hero 输入框的占位文字也被接管，把「把原生占位文字字号归零」的选择器从 `[data-composer-placeholder][data-admech-placeholder="true"]` 弱化成 `[data-admech-placeholder="true"]`。宿主自带规则 `[data-composer-placeholder] { font-size: 14px !important }` 在样式表中更靠后、特异性相同而获胜，于是原生占位文字（14px / 24px 行高）与主题的 `::before` 副本同时绘制，行高翻倍后第二层被裁切 —— **纯套件回归，与 DSH 本身无关**。
+
+修复：恢复双属性高特异性选择器，同时保留 `[data-admech-placeholder="true"][class*="placeholder"]` 覆盖 web / hero 变体；v0.9.1 起提示文字只绘制一层。当前真机 computed 样式：原生占位 `font-size: 0px`，仅 `::before` 以 14px/24px 绘制。按旧级联注入样式可稳定复现两层重影（下两图：上为重影复现，下为修复后）。
+
+![hint duplicate before](shots/v091-hint-duplicate-before.png)
+![hint fixed](shots/v091-hint-fixed.png)
 ## v0.9.0：DSH 应用图标 + 两处状态配色修复
 
 ### 1. macOS 应用图标：DSH 换成机械神教徽记
