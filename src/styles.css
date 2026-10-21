@@ -637,7 +637,14 @@ html[data-dsh-admech] [data-composer-input] {
 }
 html[data-dsh-admech] [data-composer-card] button { color: var(--admech-ash); }
 html[data-dsh-admech] [data-composer-card] button:hover { color: var(--admech-brass-bright); }
-html[data-dsh-admech] [data-composer-card] button[aria-label="发送消息"] {
+/* The composer's single primary button changes its label between send, queue
+   ("排队发送"), steer ("插话发送") and stop while a turn runs. Style the host's
+   primary slot itself, not only the idle "发送消息" label: otherwise queue /
+   steer states fall back to the host's --button-info-fill, which the theme maps
+   to brass, leaving a plain gold disc whose masked brass glyph is invisible. */
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary,
+html[data-dsh-admech] [data-composer-card] button[aria-label="发送消息"],
+html[data-dsh-admech] [data-composer-card] button[aria-label="Send message"] {
   width: 34px !important;
   height: 34px !important;
   border-radius: 50% !important;
@@ -646,9 +653,28 @@ html[data-dsh-admech] [data-composer-card] button[aria-label="发送消息"] {
   color: #f7ecd5 !important;
   box-shadow: inset 0 1px 0 rgba(255, 220, 180, 0.28), 0 2px 9px rgba(0, 0, 0, 0.55), 0 0 0 var(--admech-hairline, 1px) rgba(0, 0, 0, 0.35);
 }
-html[data-dsh-admech] [data-composer-card] button[aria-label="发送消息"]:hover {
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary:hover:not(:disabled),
+html[data-dsh-admech] [data-composer-card] button[aria-label="发送消息"]:hover:not(:disabled),
+html[data-dsh-admech] [data-composer-card] button[aria-label="Send message"]:hover:not(:disabled) {
   background: radial-gradient(circle at 34% 28%, #d24a37, var(--admech-mars-bright) 64%, var(--admech-mars) 100%) !important;
   box-shadow: inset 0 1px 0 rgba(255, 220, 180, 0.34), 0 0 20px rgba(194, 55, 43, 0.4);
+}
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary svg,
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary svg[data-admech-icon] {
+  color: #f7ecd5 !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)) !important;
+}
+/* Queue / steer are ritual "insertions" into a running turn: add an amber ring
+   so the running-turn intent is readable without changing the red seal. */
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary[aria-label="排队发送"],
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary[aria-label="插话发送"],
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary[aria-label="Queue message"],
+html[data-dsh-admech] [data-composer-card] button.yhfFVG_primary[aria-label="Steer message"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 180, 0.28),
+    0 0 0 2px rgba(224, 163, 58, 0.5),
+    0 2px 12px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(224, 163, 58, 0.28) !important;
 }
 
 html[data-dsh-admech] [data-composer-card] button[aria-label="停止生成"] {
@@ -1825,6 +1851,26 @@ html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"]::before {
 }
 html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="ok"]:hover::before { color: var(--admech-brass-bright); opacity: 1; }
 html[data-dsh-admech] .cl2Rlq_root[data-admech-effort-state="none"]::before { content: none; }
+
+/* ---------- question card: recommendation badge ---------- */
+
+/* The host paints the recommendation badge with the sidebar-active accent as
+   background and --dsw-alias-button-info-fill as text colour. Both tokens are
+   brass in this theme, so "推荐" was invisible gold-on-gold. Give the badge an
+   explicit themed pair instead of relying on those two tokens. */
+html[data-dsh-admech] [class*="_optionLine"] > [class*="_badge"],
+html[data-dsh-admech] [class*="QuestionComposer"] [class*="_badge"] {
+  background: rgba(201, 161, 90, 0.16) !important;
+  color: var(--admech-brass-bright) !important;
+  border: var(--admech-hairline, 1px) solid rgba(201, 161, 90, 0.46);
+  border-radius: 2px !important;
+  padding: 0 5px !important;
+  font-family: var(--admech-serif) !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.12em;
+  line-height: 16px !important;
+}
 
 /* ---------- startup hand-off: prelude -> ignition splash ---------- */
 

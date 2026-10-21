@@ -1,7 +1,7 @@
 {
   "name": "dsh-theme-admech",
-  "version": "0.8.0",
-  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.8.0: the host half injects a boot prelude into the served index so opening DSH shows one continuous kit ignition sequence (the native HARNESS loading screen never paints); the composer gains a themed telemetry rail (speed / cache hit / context) with instrument-panel popovers; reasoning effort becomes a discrete slider and a cogitation-depth progress gauge lives inside the composer. v0.7.18 prevents the modal dialog frame from breaking the composer stats/context popovers. v0.7.17 fixes the black embedded Usage/Top-up page on Windows. v0.7.0: Windows 11 verification pass (DPI-aware hairlines, Contrast Themes, reduced-motion splash skip). v0.6.x: changed-file/deliverable cards, Windows Platform view, icon fixes. v0.5.x: startup splash, deep-diving/process icons, composer removeChild fix. v0.4.2 icon restoration. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
+  "version": "0.9.0",
+  "description": "Pure Forge-Cathedral tech-gothic theme for DSH. v0.9.0: themed macOS application icon (Dock/Finder install + restore scripts), readable recommendation badge in agent question cards, and a fix that keeps the composer primary button Mars-red in queue/steer/stop states. v0.8.0: one-piece boot prelude takeover, machine-spirit telemetry rail (speed / cache hit / context), reasoning-effort slider plus a cogitation-depth gauge inside the composer. v0.7.18 prevents the modal dialog frame from breaking composer popovers. v0.7.17 fixes the black embedded Usage page on Windows. v0.7.0: Windows 11 verification pass. v0.6.x: deliverable cards, Windows Platform view, icon fixes. v0.5.x: startup splash, process icons, composer removeChild fix. v0.4.2 icon restoration. macOS + Windows verified. 机械神教 · 铸炉圣殿。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

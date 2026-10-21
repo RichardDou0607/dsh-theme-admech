@@ -1,11 +1,50 @@
-# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.8.0）
+# dsh-theme-admech — 机械神教 · 铸炉圣殿（纯 A / v0.9.0）
 
-> **状态：v0.8.0。启动画面由套件完整接管（原生 HARNESS 加载屏不再出现，启动前奏 → 点火序列一段式衔接）；底部速率 / 命中率 / 上下文改为机魂遥测仪表；思考程度改为滑块调整，并在输入框内常驻一条思考程度进度条。**
+> **状态：v0.9.0。新增 macOS 应用图标（Dock / Finder 的 DSH 图标换成齿轮-骷髅，附一键安装/还原脚本）；修复问题卡片里「推荐」标签金底金字不可见；修复智能体运行中发送键变成纯金色圆点（排队/插话状态）。v0.8.0 的启动前奏、机魂遥测条与思考程度滑块保持。**
 > Windows 适配细节见文末「Windows 适配（v0.7.0 · 实测）」，其中包含实测过的安装流程、失败模式与可复现的渲染审计脚本。
 > 当前桌面 profile 以 `link:` 方式指向本仓库：client 半边的改动会被 HMR 热替换；宿主半边的启动前奏注入需要插件行重新挂载（或在「插件」页停用/启用一次），之后刷新页面即生效。
 > 图标标准 = 你提供的齿轮-骷髅：只改颜色、等比缩放，不重绘。
 
 ![hero](shots/hero-desktop.png)
+
+## v0.9.0：DSH 应用图标 + 两处状态配色修复
+
+### 1. macOS 应用图标：DSH 换成机械神教徽记
+
+应用图标按 macOS 圆角方形规范重绘（1024px 画布、824px 内容、185px 圆角）：铁黑底 + 黄铜双框 + 尖拱 portal 线稿 + 发光的齿轮-骷髅 + 火星红封印，32px 下仍可辨认。
+
+![app icon](shots/v090-app-icon-1024.png)
+
+生成：`python3 tools/build-macos-app-icon.py`（Pillow + `iconutil`），产物在 `assets/app-icon/`：`AppIcon.icns`、`icon-1024.png`、`icon-512.png`、`icon-256.png`。
+
+安装 / 还原（需要一次管理员授权）：
+
+```bash
+# 方式一：Finder 里双击 tools/install-macos-app-icon.command
+# 方式二：终端执行
+tools/install-macos-app-icon.sh install
+tools/install-macos-app-icon.sh restore   # 还原官方图标
+tools/install-macos-app-icon.sh status    # 查看当前状态
+```
+
+说明：插件运行中无法直接改 Dock 图标（macOS 限制），所以这一步是替换已安装应用包里的 `icon.icns` / `icon.png`；原始图标会先备份到 `~/.dsh-theme-admech/app-icon-backup/`。DSH 更新会恢复官方图标，更新后重跑 `install` 即可。资源替换会让应用包的 `codesign` 校验失效（本地一般仍可正常启动，若异常执行 `restore`）。
+
+### 2. 问题卡片：推荐标签「推荐」文字不可见
+
+宿主用 `--dsw-specific-sidebar-nav-item-active-accent` 做底色、用 `--dsw-alias-button-info-fill` 做文字色，而本主题把这两个 token 都设成了黄铜 → 金底金字。现在给推荐标签单独的黄铜描边 + 磷光文字配色，任何主题 token 调整都不会再吞掉文字。
+
+![question badge](shots/v090-question-badge.png)
+
+### 3. 发送键在排队 / 插话状态变成纯金色圆点
+
+发送键与「停止生成」共用宿主的 `yhfFVG_primary` 槽位，标签会随状态在 发送消息 / 排队发送 / 插话发送 / 停止生成 之间切换。主题此前只匹配 `aria-label="发送消息"`，所以智能体运行时输入文字，按钮退回到宿主默认的 `--button-info-fill`（本主题 = 黄铜）——一颗纯金圆点，而里面被 mask 成黄铜色的发送箭头也和底色融为一体，看起来像图标消失。
+
+修复：按宿主主按钮 class 统一上火星红圆环样式，发送/排队/插话三种状态都保持红色 + 米白图标；排队与插话额外加琥珀色外环表示「插入正在运行的轮次」；停止状态继续使用红色脉冲圆环。
+
+![queue send](shots/v090-send-queue.png)
+![composer queue](shots/v090-composer-queue.png)
+
+验证：真机取三种状态的计算样式，背景均为火星红径向渐变、图标为 `#f7ecd5`、尺寸 34px；推荐标签为 34×18px、文字 `#e3c184` 落在半透明黄铜底上。主题 CSS 改动后 `layout_audit` 重新 PASS（1440×900 + 390×844，0 errors）。
 
 ## v0.8.0：一段式启动 + 机魂遥测条 + 思考程度滑块
 
